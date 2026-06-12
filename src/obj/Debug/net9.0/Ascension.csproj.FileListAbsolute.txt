@@ -1,0 +1,15 @@
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\bin\Debug\net9.0\Ascension.exe
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\bin\Debug\net9.0\Ascension.deps.json
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\bin\Debug\net9.0\Ascension.runtimeconfig.json
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\bin\Debug\net9.0\Ascension.dll
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\bin\Debug\net9.0\Ascension.pdb
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\Ascension.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\Ascension.AssemblyInfoInputs.cache
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\Ascension.AssemblyInfo.cs
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\Ascension.csproj.CoreCompileInputs.cache
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\Ascension.sourcelink.json
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\Ascension.dll
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\refint\Ascension.dll
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\Ascension.pdb
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\Ascension.genruntimeconfig.cache
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\ref\Ascension.dll
