@@ -80,7 +80,6 @@ public class CombatManager
             Resources = c.Resources with
             {
                 HasActed = false,
-                Defending = false,
                 DefendedLastTurn = c.Resources.Defending
             }
         }).ToList();
@@ -89,7 +88,6 @@ public class CombatManager
             Resources = c.Resources with
             {
                 HasActed = false,
-                Defending = false,
                 DefendedLastTurn = c.Resources.Defending
             }
         }).ToList();
@@ -115,22 +113,28 @@ public class CombatManager
 
     public void ExecuteTurn(Character attacker, Character target, AttackType type, float modifiers, float roll)
     {
-        var opponents = GetOpponents(attacker);
+        var freshAttacker = (_sideA.Concat(_sideB)).First(c => c.Id == attacker.Id);
+
+        if (freshAttacker.Resources.Defending)
+        {
+            freshAttacker = freshAttacker with { Resources = freshAttacker.Resources with { Defending = false } };
+            UpdateCharacter(freshAttacker);
+        }
+
+        var opponents = GetOpponents(freshAttacker);
         if (!opponents.Any(c => c.Id == target.Id))
         {
-            _log.Add($"{attacker.Name} tried to target an invalid opponent.");
+            _log.Add($"{freshAttacker.Name} tried to target an invalid opponent.");
             return;
         }
 
-        // refresh target from state
         var freshTarget = (_sideA.Concat(_sideB)).First(c => c.Id == target.Id);
-
-        AttackResult attack = CombatCalculator.ResolveAttack(attacker, freshTarget, type, modifiers, roll);
+        AttackResult attack = CombatCalculator.ResolveAttack(freshAttacker, freshTarget, type, modifiers, roll);
 
         if (!attack.Hit)
         {
-            _log.Add($"{attacker.Name} attacks {freshTarget.Name} - miss!");
-            MarkActed(attacker);
+            _log.Add($"{freshAttacker.Name} attacks {freshTarget.Name} - miss!");
+            MarkActed(freshAttacker);
             return;
         }
 
@@ -138,15 +142,15 @@ public class CombatManager
 
         if (freshTarget.Resources.Defending)
         {
-            BlockResult block = CombatCalculator.ResolveBlock(attacker, freshTarget);
+            BlockResult block = CombatCalculator.ResolveBlock(freshAttacker, freshTarget);
             finalDamage = (int)(attack.Damage * (1f - block.Reduction));
             _log.Add($"{freshTarget.Name} {(block.Tier == BlockTier.Full ? "fully blocks" : "partially blocks")} the attack!");
         }
 
         ApplyDamage(freshTarget, finalDamage);
-        MarkActed(attacker);
+        MarkActed(freshAttacker);
 
-        _log.Add($"{attacker.Name} hits {freshTarget.Name} for {finalDamage} damage." +
-        (attack.StatusEffect != null ? $" [{attack.StatusEffect}]" : ""));
+        _log.Add($"{freshAttacker.Name} hits {freshTarget.Name} for {finalDamage} damage." +
+                 (attack.StatusEffect != null ? $" [{attack.StatusEffect}]" : ""));
     }
 }

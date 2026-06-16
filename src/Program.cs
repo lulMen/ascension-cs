@@ -30,15 +30,19 @@ bool ShouldDefend(Character actor, Character target)
     float hpPercent = (float)actor.Resources.CurrentHp / actorStats.MaxHp;
     float targetHpPercent = (float)target.Resources.CurrentHp / targetStats.MaxHp;
 
-    // Rule 1 - finish them
+    // Rule 1 — finish them
     if (targetHpPercent < 0.15f) return false;
-    // Rule 2 - no turtling
+
+    // Rule 2 — no turtling
+    if (hpPercent < 0.30f && actor.Resources.DefendedLastTurn) return false;
+
+    // Rule 3 — survival
     if (hpPercent < 0.30f && actorStats.Initiative < targetStats.Initiative) return true;
-    // Rule 3 - survival
-    if (hpPercent < 0.30f && actorStats.Initiative < targetStats.Initiative) return false;
-    // Rule 4 - aggression
-    if (hpPercent < 0.30f && actorStats.Initiative >= targetStats.Initiative) return true;
-    // Rule 5 - default
+
+    // Rule 4 — aggression
+    if (hpPercent < 0.30f && actorStats.Initiative >= targetStats.Initiative) return false;
+
+    // Rule 5 — default
     return false;
 }
 
