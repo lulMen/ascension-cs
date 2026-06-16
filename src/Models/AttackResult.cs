@@ -5,5 +5,6 @@ public record AttackResult(
     int Damage,
     float HitChance,
     string AttackerId,
-    string DefenderId
+    string DefenderId,
+    string? StatusEffect = null
 );
