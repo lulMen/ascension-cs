@@ -5,7 +5,7 @@ namespace Ascension.Combat;
 public static class CombatCalculator
 {
     // ── Constants ────────────────────────────────────────────
-    private const float BASIC_ATTACK_ACCURACY = 0.15f;
+    private const float BASIC_ATTACK_ACCURACY = 0.25f;
     private const float DEFENSE_K = 30f;
     private const float DEFEND_REACTION = 1.5f;
     private const float BLOCK_K = 30f;
