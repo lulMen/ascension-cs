@@ -77,11 +77,21 @@ public class CombatManager
         _round++;
         _sideA = _sideA.Select(c => c with
         {
-            Resources = c.Resources with { HasActed = false }
+            Resources = c.Resources with
+            {
+                HasActed = false,
+                Defending = false,
+                DefendedLastTurn = c.Resources.Defending
+            }
         }).ToList();
         _sideB = _sideB.Select(c => c with
         {
-            Resources = c.Resources with { HasActed = false }
+            Resources = c.Resources with
+            {
+                HasActed = false,
+                Defending = false,
+                DefendedLastTurn = c.Resources.Defending
+            }
         }).ToList();
     }
 
@@ -89,10 +99,14 @@ public class CombatManager
     {
         var updated = c with
         {
-            Resources = c.Resources with { Defending = true }
+            Resources = c.Resources with
+            {
+                Defending = true,
+                DefendedLastTurn = true
+            }
         };
         UpdateCharacter(updated);
-        MarkActed(c);
+        MarkActed(updated);
         _log.Add($"{c.Name} braces for impact.");
     }
 
@@ -126,7 +140,7 @@ public class CombatManager
         {
             BlockResult block = CombatCalculator.ResolveBlock(attacker, freshTarget);
             finalDamage = (int)(attack.Damage * (1f - block.Reduction));
-            _log.Add($"{freshTarget.Name} {(block.Tier == BlockTier.Full ? "fullyblocks" : "partially blocks")} the attack!");
+            _log.Add($"{freshTarget.Name} {(block.Tier == BlockTier.Full ? "fully blocks" : "partially blocks")} the attack!");
         }
 
         ApplyDamage(freshTarget, finalDamage);

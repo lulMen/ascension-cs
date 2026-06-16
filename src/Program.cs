@@ -13,6 +13,7 @@ Character InitFighter(Character fighter)
             CurrentStamina: stats.MaxStamina,
             CurrentMp: stats.MaxMp,
             Defending: false,
+            DefendedLastTurn: false,
             HasActed: false
         )
     };
@@ -20,6 +21,26 @@ Character InitFighter(Character fighter)
 
 var kael = InitFighter(Fighters.Kael);
 var veyra = InitFighter(Fighters.Veyra);
+
+bool ShouldDefend(Character actor, Character target)
+{
+    var actorStats = CombatCalculator.CalculateDerivedStats(actor.Attributes);
+    var targetStats = CombatCalculator.CalculateDerivedStats(target.Attributes);
+
+    float hpPercent = (float)actor.Resources.CurrentHp / actorStats.MaxHp;
+    float targetHpPercent = (float)target.Resources.CurrentHp / targetStats.MaxHp;
+
+    // Rule 1 - finish them
+    if (targetHpPercent < 0.15f) return false;
+    // Rule 2 - no turtling
+    if (hpPercent < 0.30f && actorStats.Initiative < targetStats.Initiative) return true;
+    // Rule 3 - survival
+    if (hpPercent < 0.30f && actorStats.Initiative < targetStats.Initiative) return false;
+    // Rule 4 - aggression
+    if (hpPercent < 0.30f && actorStats.Initiative >= targetStats.Initiative) return true;
+    // Rule 5 - default
+    return false;
+}
 
 // ── Start Combat ──────────────────────────────────────────
 var combat = new CombatManager(
@@ -51,13 +72,17 @@ while (combat.CheckWin() == null)
 
         var target = opponents.First(c => c.Resources.CurrentHp > 0);
 
-        combat.ExecuteTurn(
-            attacker: actor,
-            target: target,
-            type: AttackType.Physical,
-            modifiers: 1f,
-            roll: (float)rng.NextDouble()
-        );
+        if (ShouldDefend(actor, target))
+            combat.SetDefending(actor);
+        else
+            combat.ExecuteTurn(
+                attacker: actor,
+                target: target,
+                type: AttackType.Physical,
+                modifiers: 1f,
+                roll: (float)rng.NextDouble()
+            );
+
     }
 
     foreach (var entry in combat.Log.Skip(logCursor))

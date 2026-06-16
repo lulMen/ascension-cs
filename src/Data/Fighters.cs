@@ -19,6 +19,7 @@ public static class Fighters
             CurrentStamina: 0,
             CurrentMp: 0,
             Defending: false,
+            DefendedLastTurn: false,
             HasActed: false
         )
     );
@@ -38,6 +39,7 @@ public static class Fighters
             CurrentStamina: 0,
             CurrentMp: 0,
             Defending: false,
+            DefendedLastTurn: false,
             HasActed: false
         )
     );

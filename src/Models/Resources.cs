@@ -5,5 +5,6 @@ public record Resources(
     int CurrentStamina,
     int CurrentMp,
     bool Defending,
+    bool DefendedLastTurn,
     bool HasActed
 );
