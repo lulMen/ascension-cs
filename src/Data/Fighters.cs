@@ -7,6 +7,10 @@ public static class Fighters
     public static Character Kael => new Character(
         Id: Guid.NewGuid().ToString(),
         Name: "Kael",
+        BirthClass: "Adventurer",
+        CurrentClass: null,
+        Tier: 0,
+        ResetUsed: false,
         Attributes: new Attributes(
             Strength: 55,
             Agility: 50,
@@ -27,6 +31,10 @@ public static class Fighters
     public static Character Veyra => new Character(
         Id: Guid.NewGuid().ToString(),
         Name: "Veyra",
+        BirthClass: "Adventurer",
+        CurrentClass: null,
+        Tier: 0,
+        ResetUsed: false,
         Attributes: new Attributes(
             Strength: 30,
             Agility: 70,

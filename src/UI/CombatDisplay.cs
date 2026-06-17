@@ -46,7 +46,7 @@ public static class CombatDisplay
     {
         string hpColor = HpColor(c.Resources.CurrentHp, stats.MaxHp);
         string hpBar = HpBar(c.Resources.CurrentHp, stats.MaxHp);
-        string status = c.Resources.Defending ? " [blue][DEFENDING][/]" : "";
+        string status = c.Resources.Defending ? " [blue][[DEFENDING]][/]" : "";
 
         var content = new Markup(
             $"[{nameColor}]{c.Name}[/]{status}\n" +
