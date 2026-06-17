@@ -1,6 +1,9 @@
-﻿using Ascension.Combat;
+﻿using Spectre.Console;
+
+using Ascension.Combat;
 using Ascension.Data;
 using Ascension.Models;
+using Ascension.UI;
 
 // ── Initialize Fighters ───────────────────────────────────
 Character InitFighter(Character fighter)
@@ -19,9 +22,6 @@ Character InitFighter(Character fighter)
     };
 }
 
-var kael = InitFighter(Fighters.Kael);
-var veyra = InitFighter(Fighters.Veyra);
-
 bool ShouldDefend(Character actor, Character target)
 {
     var actorStats = CombatCalculator.CalculateDerivedStats(actor.Attributes);
@@ -30,23 +30,16 @@ bool ShouldDefend(Character actor, Character target)
     float hpPercent = (float)actor.Resources.CurrentHp / actorStats.MaxHp;
     float targetHpPercent = (float)target.Resources.CurrentHp / targetStats.MaxHp;
 
-    // Rule 1 — finish them
     if (targetHpPercent < 0.15f) return false;
-
-    // Rule 2 — no turtling
     if (hpPercent < 0.30f && actor.Resources.DefendedLastTurn) return false;
-
-    // Rule 3 — survival
     if (hpPercent < 0.30f && actorStats.Initiative < targetStats.Initiative) return true;
-
-    // Rule 4 — aggression
     if (hpPercent < 0.30f && actorStats.Initiative >= targetStats.Initiative) return false;
-
-    // Rule 5 — default
     return false;
 }
 
-// ── Start Combat ──────────────────────────────────────────
+var kael = InitFighter(Fighters.Kael);
+var veyra = InitFighter(Fighters.Veyra);
+
 var combat = new CombatManager(
     sideA: new List<Character> { kael },
     sideB: new List<Character> { veyra }
@@ -54,16 +47,16 @@ var combat = new CombatManager(
 
 var rng = new Random();
 
-Console.WriteLine("═══════════════════════════════════");
-Console.WriteLine("          ASCENSION COMBAT         ");
-Console.WriteLine("═══════════════════════════════════");
+// ── Header ────────────────────────────────────────────────
+CombatDisplay.ShowHeader();
+CombatDisplay.ShowFighters(combat.SideA.First(), combat.SideB.First());
 
 // ── Combat Loop ───────────────────────────────────────────
 int logCursor = 0;
 
 while (combat.CheckWin() == null)
 {
-    Console.WriteLine($"\n── Round {combat.Round} ──────────────────────");
+    CombatDisplay.ShowRound(combat.Round);
 
     while (!combat.IsRoundOver())
     {
@@ -86,25 +79,21 @@ while (combat.CheckWin() == null)
                 modifiers: 1f,
                 roll: (float)rng.NextDouble()
             );
-
     }
 
     foreach (var entry in combat.Log.Skip(logCursor))
-        Console.WriteLine(entry);
+        CombatDisplay.ShowLogLine(entry);
     logCursor = combat.Log.Count;
 
-    var kStatus = combat.SideA.First();
-    var vStatus = combat.SideB.First();
-    Console.WriteLine($"\n{kStatus.Name}: {kStatus.Resources.CurrentHp} HP");
-    Console.WriteLine($"{vStatus.Name}: {vStatus.Resources.CurrentHp} HP");
+    AnsiConsole.WriteLine();
+    CombatDisplay.ShowFighters(combat.SideA.First(), combat.SideB.First());
 
     combat.NextRound();
 }
 
+// ── Winner ────────────────────────────────────────────────
 var winner = combat.CheckWin() == "sideA"
     ? combat.SideA.First().Name
     : combat.SideB.First().Name;
 
-Console.WriteLine("\n═══════════════════════════════════");
-Console.WriteLine($"  WINNER: {winner.ToUpper()}");
-Console.WriteLine("═══════════════════════════════════");
+CombatDisplay.ShowWinner(winner);

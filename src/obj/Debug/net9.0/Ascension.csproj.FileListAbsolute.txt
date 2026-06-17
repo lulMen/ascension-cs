@@ -13,3 +13,7 @@ C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\refint\Asce
 C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\Ascension.pdb
 C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\Ascension.genruntimeconfig.cache
 C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\ref\Ascension.dll
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\bin\Debug\net9.0\Spectre.Console.dll
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\bin\Debug\net9.0\Spectre.Console.Ansi.dll
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\Ascension.csproj.AssemblyReference.cache
+C:\Users\mvdo1\Documents\_Projects\ascension-cs\src\obj\Debug\net9.0\Ascension.csproj.Up2Date

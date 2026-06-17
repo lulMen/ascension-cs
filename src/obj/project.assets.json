@@ -1,11 +1,86 @@
 {
   "version": 3,
   "targets": {
-    "net9.0": {}
+    "net9.0": {
+      "Spectre.Console/0.57.0": {
+        "type": "package",
+        "dependencies": {
+          "Spectre.Console.Ansi": "0.57.0"
+        },
+        "compile": {
+          "lib/net9.0/Spectre.Console.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net9.0/Spectre.Console.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "Spectre.Console.Ansi/0.57.0": {
+        "type": "package",
+        "compile": {
+          "lib/net9.0/Spectre.Console.Ansi.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net9.0/Spectre.Console.Ansi.dll": {
+            "related": ".xml"
+          }
+        }
+      }
+    }
   },
-  "libraries": {},
+  "libraries": {
+    "Spectre.Console/0.57.0": {
+      "sha512": "X5+4ZsUYTPlTs5PEoKRlxUuKOa1AkEoAGM34pUeJPjsBdtOnvnaVb31hqewhooomihl1i9fEBid1fz8XxZTacQ==",
+      "type": "package",
+      "path": "spectre.console/0.57.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "lib/net10.0/Spectre.Console.dll",
+        "lib/net10.0/Spectre.Console.xml",
+        "lib/net8.0/Spectre.Console.dll",
+        "lib/net8.0/Spectre.Console.xml",
+        "lib/net9.0/Spectre.Console.dll",
+        "lib/net9.0/Spectre.Console.xml",
+        "lib/netstandard2.0/Spectre.Console.dll",
+        "lib/netstandard2.0/Spectre.Console.xml",
+        "logo.png",
+        "spectre.console.0.57.0.nupkg.sha512",
+        "spectre.console.nuspec"
+      ]
+    },
+    "Spectre.Console.Ansi/0.57.0": {
+      "sha512": "DGeYljyWAIHSeUAoUGqyzyOqS8WlsHKW+y4zOZ0OO61oqrhx90jHS+XG5Kpq/wWz6ovIs2VL/0CTKpUVa7tdWg==",
+      "type": "package",
+      "path": "spectre.console.ansi/0.57.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "lib/net10.0/Spectre.Console.Ansi.dll",
+        "lib/net10.0/Spectre.Console.Ansi.xml",
+        "lib/net8.0/Spectre.Console.Ansi.dll",
+        "lib/net8.0/Spectre.Console.Ansi.xml",
+        "lib/net9.0/Spectre.Console.Ansi.dll",
+        "lib/net9.0/Spectre.Console.Ansi.xml",
+        "lib/netstandard2.0/Spectre.Console.Ansi.dll",
+        "lib/netstandard2.0/Spectre.Console.Ansi.xml",
+        "logo.png",
+        "spectre.console.ansi.0.57.0.nupkg.sha512",
+        "spectre.console.ansi.nuspec"
+      ]
+    }
+  },
   "projectFileDependencyGroups": {
-    "net9.0": []
+    "net9.0": [
+      "Spectre.Console >= 0.57.0"
+    ]
   },
   "packageFolders": {
     "C:\\Users\\mvdo1\\.nuget\\packages\\": {},
@@ -57,6 +132,12 @@
     "frameworks": {
       "net9.0": {
         "targetAlias": "net9.0",
+        "dependencies": {
+          "Spectre.Console": {
+            "target": "Package",
+            "version": "[0.57.0, )"
+          }
+        },
         "imports": [
           "net461",
           "net462",

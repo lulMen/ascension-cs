@@ -7,8 +7,30 @@
   "targets": {
     ".NETCoreApp,Version=v9.0": {
       "Ascension/1.0.0": {
+        "dependencies": {
+          "Spectre.Console": "0.57.0"
+        },
         "runtime": {
           "Ascension.dll": {}
+        }
+      },
+      "Spectre.Console/0.57.0": {
+        "dependencies": {
+          "Spectre.Console.Ansi": "0.57.0"
+        },
+        "runtime": {
+          "lib/net9.0/Spectre.Console.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.57.0.0"
+          }
+        }
+      },
+      "Spectre.Console.Ansi/0.57.0": {
+        "runtime": {
+          "lib/net9.0/Spectre.Console.Ansi.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.57.0.0"
+          }
         }
       }
     }
@@ -18,6 +40,20 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "Spectre.Console/0.57.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-X5+4ZsUYTPlTs5PEoKRlxUuKOa1AkEoAGM34pUeJPjsBdtOnvnaVb31hqewhooomihl1i9fEBid1fz8XxZTacQ==",
+      "path": "spectre.console/0.57.0",
+      "hashPath": "spectre.console.0.57.0.nupkg.sha512"
+    },
+    "Spectre.Console.Ansi/0.57.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-DGeYljyWAIHSeUAoUGqyzyOqS8WlsHKW+y4zOZ0OO61oqrhx90jHS+XG5Kpq/wWz6ovIs2VL/0CTKpUVa7tdWg==",
+      "path": "spectre.console.ansi/0.57.0",
+      "hashPath": "spectre.console.ansi.0.57.0.nupkg.sha512"
     }
   }
 }
