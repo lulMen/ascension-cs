@@ -1,7 +1,6 @@
 using Spectre.Console;
 using Ascension.Models;
 using Ascension.Combat;
-using System.Runtime.Intrinsics.X86;
 
 namespace Ascension.UI;
 
@@ -29,8 +28,8 @@ public static class CombatDisplay
     // ── Fighter Panels ────────────────────────────────────────
     public static void ShowFighters(Character sideA, Character sideB)
     {
-        var statsA = CombatCalculator.CalculateDerivedStats(sideA.Attributes);
-        var statsB = CombatCalculator.CalculateDerivedStats(sideB.Attributes);
+        var statsA = CombatCalculator.CalculateDerivedStats(sideA.Attributes, sideA.Level);
+        var statsB = CombatCalculator.CalculateDerivedStats(sideB.Attributes, sideB.Level);
 
         var grid = new Grid();
         grid.AddColumn();
@@ -93,6 +92,34 @@ public static class CombatDisplay
             .LeftJustified());
     }
 
+    // ── Action Menu ───────────────────────────────────────────
+    public static string ShowActionMenu(Character player)
+    {
+        var stats = CombatCalculator.CalculateDerivedStats(player.Attributes, player.Level);
+        bool exhausted = player.Resources.CurrentStamina < stats.AttackSpCost;
+
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine($"  [grey]Your turn —[/] [yellow]{player.Name}[/]");
+        AnsiConsole.MarkupLine(
+            $"  [grey]SP[/] [{SpColor(player.Resources.CurrentStamina, stats.MaxStamina)}]" +
+            $"{player.Resources.CurrentStamina}/{stats.MaxStamina}[/]  " +
+            $"[grey]ATK cost[/] [white]{stats.AttackSpCost}[/]  " +
+            $"[grey]DEF cost[/] [white]{stats.BlockSpCost}[/]"
+        );
+
+        if (exhausted)
+            AnsiConsole.MarkupLine("  [red]Exhausted — attacking at reduced power (0.75x)[/]");
+
+
+        AnsiConsole.WriteLine();
+
+        return AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .HighlightStyle(new Style(Color.Yellow))
+                .AddChoices("Attack", "Defend", "Wait", "Skills (soon)", "Items (soon)")
+        );
+    }
+
     // ── Log Lines ─────────────────────────────────────────────
     public static void ShowLogLine(string entry)
     {
@@ -101,6 +128,8 @@ public static class CombatDisplay
             var e when e.Contains("fully blocks") => $"[{ColorBlock}]{e}[/]",
             var e when e.Contains("partially blocks") => $"[{ColorBlock}]{e}[/]",
             var e when e.Contains("braces") => $"[{ColorDefend}]{e}[/]",
+            var e when e.Contains("waits") => $"[dim]{e}[/]",
+            var e when e.Contains("exhausted") => $"[red]{e}[/]",
             var e when e.Contains("miss") => $"[{ColorMiss}]{e}[/]",
             var e when e.Contains("hits") => $"[{ColorHit}]{e}[/]",
             _ => entry
@@ -119,27 +148,6 @@ public static class CombatDisplay
             .Padding(2, 1));
     }
 
-    public static string ShowActionMenu(Character player)
-    {
-        var stats = CombatCalculator.CalculateDerivedStats(player.Attributes, player.Level);
-
-        AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine($"  [grey]Your turn —[/] [yellow]{player.Name}[/]");
-        AnsiConsole.MarkupLine(
-            $"  [grey]SP[/] [{SpColor(player.Resources.CurrentStamina, stats.MaxStamina)}]" +
-            $"{player.Resources.CurrentStamina}/{stats.MaxStamina}[/]  " +
-            $"[grey]ATK cost[/] [white]{stats.AttackSpCost}[/]  " +
-            $"[grey]DEF cost[/] [white]{stats.BlockSpCost}[/]"
-        );
-        AnsiConsole.WriteLine();
-
-        return AnsiConsole.Prompt(
-            new SelectionPrompt<string>()
-                .HighlightStyle(new Style(Color.Yellow))
-                .AddChoices("Attack", "Defend", "Wait", "Skills (soon)", "Items (soon)")
-        );
-    }
-
     // ── Helpers ───────────────────────────────────────────────
     private static string HpColor(int current, int max)
     {
@@ -150,14 +158,7 @@ public static class CombatDisplay
     private static string SpColor(int current, int max)
     {
         float pct = (float)current / max;
-        return pct > 0.5f ? "cyan" : pct > 0.75 ? "yellow" : "red";
-    }
-
-    private static string HpBar(int current, int max, int width = 10)
-    {
-        int filled = (int)((float)current / max * width);
-        filled = Math.Max(0, Math.Min(width, filled));
-        return new string('█', filled) + new string('░', width - filled);
+        return pct > 0.5f ? "cyan" : pct > 0.25f ? "yellow" : "red";
     }
 
     private static string HpCondition(int current, int max)
@@ -169,5 +170,12 @@ public static class CombatDisplay
         if (pct >= 0.25f) return "[yellow]Wounded[/]";
         if (pct >= 0.10f) return "[red]Critical[/]";
         return "[bold red]Near Death[/]";
+    }
+
+    private static string HpBar(int current, int max, int width = 10)
+    {
+        int filled = (int)((float)current / max * width);
+        filled = Math.Max(0, Math.Min(width, filled));
+        return new string('█', filled) + new string('░', width - filled);
     }
 }

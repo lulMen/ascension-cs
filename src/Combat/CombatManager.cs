@@ -137,8 +137,11 @@ public class CombatManager
         if (fresh.Resources.CurrentStamina < stats.BlockSpCost)
         {
             _log.Add($"{fresh.Name} is too exhausted to defend!");
-            ExecuteTurn(fresh, GetOpponents(fresh).First(x => x.Resources.CurrentHp > 0),
-                AttackType.Physical, 0.75f, (float)new Random().NextDouble());
+            var target = GetOpponents(fresh).FirstOrDefault(x => x.Resources.CurrentHp > 0);
+            if (target != null)
+                ExecuteTurn(fresh, target, AttackType.Physical, 0.75f, (float)new Random().NextDouble());
+            else
+                MarkActed(fresh);
             return;
         }
 
@@ -153,11 +156,9 @@ public class CombatManager
         UpdateCharacter(updated);
         ApplySpCost(updated, stats.BlockSpCost);
 
-        // re-fetch after SP deduction
         var afterCost = (_sideA.Concat(_sideB)).First(x => x.Id == c.Id);
-
-        MarkActed(updated);
-        _log.Add($"{c.Name} braces for impact.");
+        MarkActed(afterCost);
+        _log.Add($"{fresh.Name} braces for impact.");
     }
 
     public void Wait(Character c)
@@ -182,23 +183,23 @@ public class CombatManager
     {
         var freshAttacker = (_sideA.Concat(_sideB)).First(c => c.Id == attacker.Id);
 
+        // Drop defensive stance when committing to attack
         if (freshAttacker.Resources.Defending)
         {
             freshAttacker = freshAttacker with { Resources = freshAttacker.Resources with { Defending = false } };
             UpdateCharacter(freshAttacker);
         }
 
-        // Deduct attack SP cost
+        // Deduct SP cost then re-fetch
         var atkStats = CombatCalculator.CalculateDerivedStats(freshAttacker.Attributes, freshAttacker.Level);
         ApplySpCost(freshAttacker, atkStats.AttackSpCost);
-
-        // re-fetch after SP deduction
-        freshAttacker = (_sideA.Concat(_sideB)).First(c => c.Id == freshAttacker.Id);
+        freshAttacker = (_sideA.Concat(_sideB)).First(c => c.Id == attacker.Id);
 
         var opponents = GetOpponents(freshAttacker);
         if (!opponents.Any(c => c.Id == target.Id))
         {
             _log.Add($"{freshAttacker.Name} tried to target an invalid opponent.");
+            MarkActed(freshAttacker);
             return;
         }
 

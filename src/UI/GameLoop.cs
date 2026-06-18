@@ -2,7 +2,6 @@ using Spectre.Console;
 using Ascension.Combat;
 using Ascension.Data.Enemies;
 using Ascension.Models;
-using Ascension.UI;
 
 namespace Ascension.UI;
 
@@ -21,19 +20,14 @@ public static class GameLoop
                 break;
             }
 
-            // ── New Game ──────────────────────────────────────
             var player = CharacterCreation.Create();
-
-            // ── Combat ────────────────────────────────────────
-            string? result = RunCombat(player);
-
-            // ── Result Screen ─────────────────────────────────
+            string result = RunCombat(player);
             ShowResult(result, player);
         }
     }
 
     // ── Combat Loop ───────────────────────────────────────────
-    private static string? RunCombat(Character player)
+    private static string RunCombat(Character player)
     {
         var enemy = InitFighter(Vermin.DustfangRat);
         var combat = new CombatManager(
@@ -46,82 +40,105 @@ public static class GameLoop
         CombatDisplay.ShowHeader();
         CombatDisplay.ShowFighters(combat.SideA.First(), combat.SideB.First());
 
-        // int logCursor = 0;
+        int logCursor = 0;
 
-        while (!combat.IsRoundOver())
+        while (combat.CheckWin() == null)
         {
-            var actor = combat.GetNextActor();
-            if (actor == null) break;
+            CombatDisplay.ShowRound(combat.Round);
 
-            // always re-fetch fresh state
-            actor = combat.SideA.Concat(combat.SideB)
-                .First(c => c.Id == actor.Id);
-
-            var opponents = combat.SideA.Any(c => c.Id == actor.Id)
-                ? combat.SideB
-                : combat.SideA;
-
-            var target = opponents.FirstOrDefault(c => c.Resources.CurrentHp > 0);
-            if (target == null) break;
-
-            if (actor.IsPlayerControlled)
+            while (!combat.IsRoundOver())
             {
-                bool actionTaken = false;
-                while (!actionTaken)
+                var actor = combat.GetNextActor();
+                if (actor == null) break;
+
+                // re-fetch fresh state before acting
+                actor = combat.SideA.Concat(combat.SideB)
+                    .First(c => c.Id == actor.Id);
+
+                var opponents = combat.SideA.Any(c => c.Id == actor.Id)
+                    ? combat.SideB
+                    : combat.SideA;
+
+                var target = opponents.FirstOrDefault(c => c.Resources.CurrentHp > 0);
+                if (target == null) break;
+
+                if (actor.IsPlayerControlled)
                 {
-                    var choice = CombatDisplay.ShowActionMenu(actor);
-                    switch (choice)
+                    bool actionTaken = false;
+                    while (!actionTaken)
                     {
-                        case "Attack":
-                            combat.ExecuteTurn(
-                                attacker: actor,
-                                target: target,
-                                type: AttackType.Physical,
-                                modifiers: 1f,
-                                roll: (float)rng.NextDouble()
-                            );
-                            actionTaken = true;
-                            break;
+                        var choice = CombatDisplay.ShowActionMenu(actor);
+                        switch (choice)
+                        {
+                            case "Attack":
+                                var freshActor = combat.SideA.Concat(combat.SideB)
+                                    .First(c => c.Id == actor.Id);
+                                var freshStats = CombatCalculator.CalculateDerivedStats(
+                                    freshActor.Attributes, freshActor.Level
+                                );
+                                float modifier = freshActor.Resources.CurrentStamina >= freshStats.AttackSpCost
+                                    ? 1f
+                                    : 0.75f;
+                                combat.ExecuteTurn(
+                                    attacker: actor,
+                                    target: target,
+                                    type: AttackType.Physical,
+                                    modifiers: 1f,
+                                    roll: (float)rng.NextDouble()
+                                );
+                                actionTaken = true;
+                                break;
 
-                        case "Defend":
-                            combat.SetDefending(actor);
-                            actionTaken = true;
-                            break;
+                            case "Defend":
+                                combat.SetDefending(actor);
+                                actionTaken = true;
+                                break;
 
-                        case "Wait":
-                            combat.Wait(actor);
-                            actionTaken = true;
-                            break;
+                            case "Wait":
+                                combat.Wait(actor);
+                                actionTaken = true;
+                                break;
 
-                        default:
-                            AnsiConsole.MarkupLine(
-                                "  [dim]Not available yet — coming soon.[/]");
-                            break;
+                            default:
+                                AnsiConsole.MarkupLine(
+                                    "  [dim]Not available yet — coming soon.[/]");
+                                break;
+                        }
                     }
                 }
-            }
-            else
-            {
-                if (ShouldWait(actor))
-                    combat.Wait(actor);
-                else if (ShouldDefend(actor, target))
-                    combat.SetDefending(actor);
                 else
-                    combat.ExecuteTurn(
-                        attacker: actor,
-                        target: target,
-                        type: AttackType.Physical,
-                        modifiers: 1f,
-                        roll: (float)rng.NextDouble()
-                    );
+                {
+                    if (ShouldWait(actor))
+                        combat.Wait(actor);
+                    else if (ShouldDefend(actor, target))
+                        combat.SetDefending(actor);
+                    else
+                        combat.ExecuteTurn(
+                            attacker: actor,
+                            target: target,
+                            type: AttackType.Physical,
+                            modifiers: 1f,
+                            roll: (float)rng.NextDouble()
+                        );
+                }
             }
+
+            foreach (var entry in combat.Log.Skip(logCursor))
+                CombatDisplay.ShowLogLine(entry);
+            logCursor = combat.Log.Count;
+
+            AnsiConsole.WriteLine();
+            CombatDisplay.ShowFighters(combat.SideA.First(), combat.SideB.First());
+
+            combat.NextRound();
         }
 
-        return combat.CheckWin();
+        // ?? "draw" ensures we never return null to ShowResult
+        return combat.CheckWin() ?? "draw";
     }
 
     // ── Result Screen ─────────────────────────────────────────
-    private static void ShowResult(string? result, Character player)
+    private static void ShowResult(string result, Character player)
     {
         AnsiConsole.WriteLine();
 
@@ -152,14 +169,15 @@ public static class GameLoop
         if (next == "Play Again")
         {
             var newPlayer = CharacterCreation.Create();
-            RunCombat(newPlayer);
+            string newResult = RunCombat(newPlayer);
+            ShowResult(newResult, newPlayer);
         }
     }
 
     // ── Helpers ───────────────────────────────────────────────
     private static Character InitFighter(Character fighter)
     {
-        var stats = CombatCalculator.CalculateDerivedStats(fighter.Attributes);
+        var stats = CombatCalculator.CalculateDerivedStats(fighter.Attributes, fighter.Level);
         return fighter with
         {
             Resources = new Resources(
@@ -179,7 +197,6 @@ public static class GameLoop
         var actorStats = CombatCalculator.CalculateDerivedStats(actor.Attributes, actor.Level);
         var targetStats = CombatCalculator.CalculateDerivedStats(target.Attributes, target.Level);
 
-        // Can't afford to block
         if (actor.Resources.CurrentStamina < actorStats.BlockSpCost) return false;
 
         float hpPercent = (float)actor.Resources.CurrentHp / actorStats.MaxHp;
@@ -196,7 +213,6 @@ public static class GameLoop
     {
         var stats = CombatCalculator.CalculateDerivedStats(actor.Attributes, actor.Level);
         float hpPercent = (float)actor.Resources.CurrentHp / stats.MaxHp;
-
         return actor.Resources.CurrentStamina == 0 && hpPercent > 0.40f;
     }
 }
