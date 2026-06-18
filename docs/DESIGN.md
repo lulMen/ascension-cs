@@ -7,6 +7,32 @@
 
 ---
 
+## 0. Design Reference
+
+### Primary Reference: Reincarnation of the Strongest Sword God (RSSG)
+
+RSSG is used as a primary reference framework for game mechanics and progression design.
+We adapt its systems to our scale and world — borrowing the shape and philosophy,
+not the raw numbers or setting.
+
+What we borrow from RSSG:
+
+- Milestone-based progression (equipment thresholds every 5 levels, flat stat bonuses at 10)
+- Equipment carrying late-game power growth (not just raw stats)
+- Tier promotion system structure
+- Ability tier scaling with job changes
+- Dungeon/boss design philosophy
+- Equipment rarity tiers as power breakpoints
+
+What we do NOT copy:
+
+- Raw numbers (RSSG scales to 70,000+ attributes; ours stays in the hundreds)
+- Story and setting (our world is mythological amalgam, not VRMMORPG)
+- Exact ability designs (storyboarded separately)
+- Level cap (RSSG goes 200+; our tower caps at 100 floors, level cap at 200)
+
+---
+
 ## 1. World Concept
 
 ### Setting
@@ -33,6 +59,9 @@ nearly every culture has a version of this concept:
 Axis Mundi is the convergence point of all mythologies. The higher a player climbs,
 the closer they approach the divine. The tower has 100 floors. Floor 1 has rats.
 Floor 100 has something that makes gods nervous.
+
+Clearing the tower (Floor 100) is not the end of the game — it is the end of Phase 1
+content. Levels continue to 200. The tower was the beginning, not the destination.
 
 ---
 
@@ -83,9 +112,9 @@ Floors 91-100 → The Apex
 
 ### Philosophy
 
-- Early game (1-15): Mobs roughly equal player stats. Skill matters.
-- Mid game (16-50): Mobs pull 20-50% ahead. Gear starts to matter.
-- Late game (51-100): Mobs pull 100%+ ahead. Gear + abilities required.
+- Early game (1-20): Mobs roughly equal player stats. Skill matters.
+- Mid game (21-90): Mobs pull 20-80% ahead. Gear starts to matter.
+- Late game (91-200): Mobs pull 100%+ ahead. Gear + abilities required.
 
 This accounts for the player gaining equipment, items, and abilities that the raw
 stat comparison doesn't capture. Without this scaling, end-game mobs would be
@@ -100,10 +129,10 @@ mobStatPool(level) = 20 + (level - 1)^1.3 × 1.82
 | Level | Mob stats | Player raw stats | Mob advantage |
 | ----- | --------- | ---------------- | ------------- |
 | 1     | 20        | 20               | Even          |
-| 10    | 48        | 52               | Even          |
-| 20    | 97        | 87               | +12%          |
-| 50    | 294       | 192              | +53%          |
-| 100   | 734       | 367              | +100%         |
+| 20    | 103       | 91               | +13%          |
+| 50    | 307       | 209              | +47%          |
+| 100   | 735       | 411              | +79%          |
+| 200   | ~2,100    | ~750             | +180%         |
 
 All scaling values are tunable in `TowerConfig.cs` (to be built).
 
@@ -147,7 +176,7 @@ XP required = currentLevel × 150
 | ----- | --------- | ---------------------- |
 | 1→2   | 150       | 3 floors               |
 | 5→6   | 750       | 3 floors               |
-| 10→11 | 1500      | 3 floors               |
+| 20→21 | 3000      | 3 floors               |
 | 50→51 | 7500      | 3 floors               |
 
 Early floors are shorter (fewer fights) so early levels feel slightly harder to earn.
@@ -155,54 +184,47 @@ This is intentional — the jump from Level 1 to 2 should feel like an achieveme
 
 ### Level Cap
 
-Maximum level: 100
+Maximum level: 200
+
+Tower floors: 100 (Floor 100 = end of Phase 1 content)
+Levels 101-200 = Phase 2+ content (overworld, quests, MMO)
 
 ### Level Up Timing
 
 - Phase 1 (console): Level up and stat allocation at floor completion screen
 - Phase 2+ (2D): Level up after defeating a mob; stat allocation when player chooses
 
-### Stat Points Per Level
+### Stat Points Per Level — RSSG-Inspired System
 
 ```
-Standard level up  : +3 points
-Every 5th level    : +5 points  (5, 15, 25, 35, 45, 55, 65, 75, 85, 95)
-Every 10th level   : +8 points  (10, 20, 30, 40, 50, 60, 70, 80, 90)
-Level 50 and 100   : +15 points
-Level 100 (final)  : +25 points (supersedes all)
+Standard level up      : +3 free points
+Every 5th level        : +3 free points + equipment tier unlocked
+Every 10th level       : +3 free points + flat +5 to ALL attributes
+Tier job change levels : +10 free points + attribute reset option (see Class System)
+Level 200 (final cap)  : +15 free points + flat +10 to ALL attributes
 ```
 
-Priority order (higher always applies, not stacked):
+Equipment tier unlocks (every 5 levels) are the RSSG-borrowed mechanic —
+better gear becomes equippable, and gear carries the late-game power growth
+that raw stats cannot.
 
-```
-Level 100 → +25 (final reward, once)
-Level 50  → +15
-Mult of 10 → +8
-Mult of 5  → +5
-All others → +3
-```
+Flat attribute bonuses at level 10 milestones mirror RSSG's milestone system,
+front-loading power at checkpoints rather than spreading evenly.
 
 ### Checkpoint Bonuses (Every 10th Floor Boss)
 
 ```
-All checkpoints (10, 20, 30...90):
-├── Stat point bonus per above table
+All checkpoints (10, 20, 30...90, 100):
 ├── Full HP/SP/MP restore (free rest)
 └── Save point unlocked (respawn here on death)
 
-Floors 25, 50, 75 additionally:
+Floor 50 (mid-tower):
 └── +1 bonus point into class primary stat
 
-Floor 100:
-├── Transcendence class unlocked
-├── +25 stat points
+Floor 100 (tower cleared):
+├── Special reward (TBD)
 └── Title: "Apex Climber" (future cosmetic system)
 ```
-
-### Max Stat Points Available (Total, Level 1-100)
-
-Rough calculation: approximately 450-500 total stat points over a full playthrough,
-including checkpoint bonuses. Exact value to be confirmed during tuning.
 
 ---
 
@@ -227,10 +249,11 @@ You do NOT lose stat points or abilities gained from the lost level.
 
 ```
 Adventurer (Tier 0)  : Level 1
-Tier 1 class         : Level 15
-Tier 2 class         : Level 40
-Tier 3 class         : Level 70
-Transcendence        : Level 100
+Tier 1 class         : Level 20
+Tier 2 class         : Level 50
+Tier 3 class         : Level 90
+Tier 4 class         : Level 140
+Level 200            : Cannot regress (true cap)
 ```
 
 ---
@@ -239,16 +262,43 @@ Transcendence        : Level 100
 
 ### Birth Class
 
-All characters begin as **Adventurer** (Level 1-15).
+All characters begin as **Adventurer** (Level 1-20).
 
 - No combat class identity yet
 - Access to Tier 0 abilities only (general, not class-locked)
 - Exploration phase: player discovers their playstyle
+- Level 20: First Job Change triggers
 
-### First Job Change — Level 15
+### Job Change Levels (RSSG-Inspired Tier Structure)
 
-At Level 15, a class quest is triggered. The quest type offered is influenced
-by how the player distributed stats and used abilities during Levels 1-15
+```
+Tier 0 → Tier 1 : Level 20   (First Job Change)
+Tier 1 → Tier 2 : Level 50   (Second Job Change)
+Tier 2 → Tier 3 : Level 90   (Third Job Change)
+Tier 3 → Tier 4 : Level 140  (Fourth Job Change / Transcendence approach)
+Level 200        : True cap — something special happens here (TBD)
+```
+
+The gaps between tiers widen intentionally: 30, 40, 50, 60 levels.
+Each tier should feel like a significant chapter, not a quick milestone.
+
+### Realm System (Updated)
+
+```
+Mortal Realm      : Level 1-20    (Adventurer)
+Awakened Realm    : Level 21-50   (Tier 1)
+Exalted Realm     : Level 51-90   (Tier 2)
+Heroic Realm      : Level 91-140  (Tier 3)
+Legendary Realm   : Level 141-200 (Tier 4)
+```
+
+NPCs react to realm, not level. A peasant doesn't know your level — they feel your realm.
+Level 200 may unlock a realm beyond Legendary (TBD — Phase 3 design).
+
+### First Job Change — Level 20
+
+At Level 20, a class quest is triggered. The quest type offered is influenced
+by how the player distributed stats and used abilities during Levels 1-20
 (tracked silently by the game).
 
 ```
@@ -263,9 +313,9 @@ the challenge reveals what kind of fighter you are.
 ### Attribute Reset at Job Change
 
 - One full reset of ALL attributes is offered at Tier 1 job change (optional)
-- This is the ONLY reset in the game, ever
-- After this point, attributes are permanent until new tier points are earned
-- Each tier job change grants fresh points for that tier only — no reset
+- This is the ONLY full reset in the game, ever
+- After this point, attributes are permanent within their tier
+- Each tier job change grants fresh points for that tier ONLY — prior tiers locked
 
 ### Starting Classes (200 base points, 15 bonus at creation)
 
@@ -276,19 +326,19 @@ the challenge reveals what kind of fighter you are.
 | Rogue   | 35  | 70  | 30  | 35  | 30  | Speed, precision     |
 | Cleric  | 30  | 25  | 45  | 40  | 60  | Spirit, support      |
 
-### Evolution Paths (Job Change at Level 15)
+### Evolution Paths (Job Change at Level 20)
 
 **Warrior:**
 | Class | Type | Stat emphasis |
-|----------|---------------|-------------------|
+|-----------|---------------|-------------------------------------|
 | Sentinel | Tank | VIT↑↑ WIL↑ |
-| Berserker| DPS | STR↑↑ AGI↑ |
+| Berserker | DPS | STR↑↑ AGI↑ |
 | Champion | Hybrid | STR↑ VIT↑ |
 | Warlord | ★ Hidden | Sentinel + Berserker simultaneously |
 
 **Mage:**
 | Class | Type | Stat emphasis |
-|--------------|--------------|-------------------|
+|--------------|--------------|------------------------------------------|
 | Elementalist | Pure attack | INT↑↑ |
 | Enchanter | Control | WIL↑↑ INT↑ |
 | Arcanist | Hybrid | INT↑ WIL↑ |
@@ -296,7 +346,7 @@ the challenge reveals what kind of fighter you are.
 
 **Rogue:**
 | Class | Type | Stat emphasis |
-|----------|--------------|-------------------|
+|----------|--------------|--------------------------------------|
 | Assassin | Melee DPS | STR↑ AGI↑↑ |
 | Marksman | Ranged DPS | AGI↑↑ INT↑ |
 | Shadow | Hybrid | AGI↑↑ WIL↑ |
@@ -304,40 +354,37 @@ the challenge reveals what kind of fighter you are.
 
 **Cleric:**
 | Class | Type | Stat emphasis |
-|---------|--------------------|-------------------|
+|---------|--------------------|--------------------------|
 | Priest | Heal primary | WIL↑↑ VIT↑ |
-| Paladin | Tank primary | VIT↑↑ STR↑ WIL↑|
-| Templar | Solo (tank + heal) | VIT↑ WIL↑ balanced|
+| Paladin | Tank primary | VIT↑↑ STR↑ WIL↑ |
+| Templar | Solo (tank + heal) | VIT↑ WIL↑ balanced |
 | Saint | ★ Hidden | All three simultaneously |
 
 ### Hidden Class Unlock Conditions
 
-Hidden classes require very specific playstyle conditions during Levels 1-15.
+Hidden classes require very specific playstyle conditions during Levels 1-20.
 The hidden class quest is noticeably harder than standard class quests.
 Failing a hidden class quest has consequences (TBD — storyboard later).
-Specific unlock conditions are TBD.
+Specific unlock conditions are TBD per class.
 
-### Tier Progression (Future)
+### Equipment Rarity Tiers (RSSG-Inspired)
 
-```
-Tier 0: Adventurer         (Level 1-15)
-Tier 1: First job class    (Level 15-40)   → Job change at Level 15
-Tier 2: Evolution          (Level 40-70)   → Job change at Level 40, resets Tier 1 points
-Tier 3: Second evolution   (Level 70-100)  → Job change at Level 70, resets Tier 2 points
-Transcendence              (Level 100)     → Resets Tier 3 points
-```
-
-### Realm System
+Each tier unlocks at equipment threshold levels (every 5 levels):
 
 ```
-Mortal Realm    → Level 1-15   (Adventurer)
-Awakened Realm  → Level 16-40  (First job)
-Exalted Realm   → Level 41-70  (Second job)
-Heroic Realm    → Level 71-100 (Third job)
-Legendary Realm → Level 100+   (Transcendence)
+Common      → Level 1+
+Iron        → Level 5+
+Silver      → Level 10+
+Gold        → Level 20+    (Tier 1 job change threshold)
+Dark Gold   → Level 35+
+Epic        → Level 50+    (Tier 2 job change threshold)
+Legendary   → Level 90+    (Tier 3 job change threshold)
+Divine      → Level 140+   (Tier 4 threshold)
+Mythic      → Level 200    (True cap)
 ```
 
-NPCs react to realm, not level. A peasant doesn't know your level — they feel your realm.
+Finding gear above your current floor's expected rarity is a meaningful discovery.
+Equipment bridges the gap between raw player stats and mob stat scaling at high levels.
 
 ---
 
@@ -346,11 +393,11 @@ NPCs react to realm, not level. A peasant doesn't know your level — they feel 
 ### Tiers
 
 ```
-Tier 0 abilities: General, available to all classes, Levels 1-15
-Tier 1 abilities: Class-specific, unlocked at first job change
-Tier 2 abilities: Evolution-specific, unlocked at second job change
-Tier 3 abilities: Advanced evolution abilities
-Tier 4 abilities: Transcendence abilities
+Tier 0 abilities: General, available to all classes, Levels 1-20
+Tier 1 abilities: Class-specific, unlocked at first job change (Level 20)
+Tier 2 abilities: Evolution-specific, unlocked at second job change (Level 50)
+Tier 3 abilities: Advanced evolution abilities (Level 90)
+Tier 4 abilities: Transcendence abilities (Level 140+)
 ```
 
 ### Cost Philosophy
@@ -543,10 +590,11 @@ Future (Phase 2+ with DB):
 
 ## 12. Equipment and Loot (Planned — Not Yet Implemented)
 
+Equipment rarity tiers listed in Section 6 (Class System).
 Loot tables: TBD during storyboarding.
-Equipment will affect derived stats (bonus to existing stats or flat additions).
-This is a key reason mob scaling pulls ahead of raw player stats at high levels —
-gear bridges the gap the numbers alone cannot.
+Equipment affects derived stats (bonus to existing stats or flat additions).
+This is the primary reason mob scaling pulls ahead of raw player stats at high levels —
+gear bridges the gap the numbers alone cannot. (RSSG design philosophy borrowed here.)
 
 ---
 
@@ -573,14 +621,14 @@ Layout decisions made here translate to Godot node structure later.
 
 ## 14. Planned Tools / Libraries
 
-| Tool                 | Purpose                         | Status                            |
-| -------------------- | ------------------------------- | --------------------------------- |
-| Spectre.Console      | Terminal UI                     | Active                            |
-| System.Text.Json     | Save files                      | Planned                           |
-| xUnit                | Unit tests for CombatCalculator | Planned (after combat stabilizes) |
-| SQLite + Dapper      | Local DB for Phase 2            | Future                            |
-| PostgreSQL + EF Core | MMO backend                     | Phase 3                           |
-| Godot (C# bindings)  | 2D game engine                  | Phase 2                           |
+| Tool                 | Purpose                         | Status  |
+| -------------------- | ------------------------------- | ------- |
+| Spectre.Console      | Terminal UI                     | Active  |
+| System.Text.Json     | Save files                      | Planned |
+| xUnit                | Unit tests for CombatCalculator | Planned |
+| SQLite + Dapper      | Local DB for Phase 2            | Future  |
+| PostgreSQL + EF Core | MMO backend                     | Phase 3 |
+| Godot (C# bindings)  | 2D game engine                  | Phase 2 |
 
 ---
 
@@ -590,6 +638,7 @@ Layout decisions made here translate to Godot node structure later.
 src/
 ├── Models/          ← Pure data records (no logic)
 ├── Combat/          ← CombatCalculator (Decide) + CombatManager (Apply)
+├── Core/            ← FloorManager, XpSystem, TowerConfig (to be built)
 ├── Data/
 │   ├── Enemies/     ← One file per enemy category (Vermin, Undead, Beasts...)
 │   └── Fighters.cs  ← Demo characters (Kael, Veyra) — temporary
