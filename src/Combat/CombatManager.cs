@@ -101,7 +101,6 @@ public class CombatManager
                     CurrentStamina = Math.Min(stats.MaxStamina, c.Resources.CurrentStamina + spRegen),
                     CurrentMp = Math.Min(stats.MaxMp, c.Resources.CurrentMp + mpRegen),
                     HasActed = false,
-                    Defending = false,
                     DefendedLastTurn = c.Resources.Defending,
                     IsWaiting = false
                 }
@@ -121,7 +120,6 @@ public class CombatManager
                     CurrentStamina = Math.Min(stats.MaxStamina, c.Resources.CurrentStamina + spRegen),
                     CurrentMp = Math.Min(stats.MaxMp, c.Resources.CurrentMp + mpRegen),
                     HasActed = false,
-                    Defending = false,
                     DefendedLastTurn = c.Resources.Defending,
                     IsWaiting = false
                 }

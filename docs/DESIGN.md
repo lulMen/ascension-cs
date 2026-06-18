@@ -1,9 +1,12 @@
 # Ascension — Design Document
 
 > Last updated: June 2026
-> This document captures design decisions, future implementations, and mechanics
-> that cannot be gleaned from reading the codebase alone. Written for both
-> developer reference and Claude session continuity.
+> Phase 1 (C# Console) — COMPLETE
+> Phase 2 (Godot 2D) — STARTING NEXT
+>
+> This document is the single source of truth for design intent.
+> The code captures implementation. This captures why.
+> Written for developer reference and Claude session continuity.
 
 ---
 
@@ -11,25 +14,22 @@
 
 ### Primary Reference: Reincarnation of the Strongest Sword God (RSSG)
 
-RSSG is used as a primary reference framework for game mechanics and progression design.
-We adapt its systems to our scale and world — borrowing the shape and philosophy,
-not the raw numbers or setting.
+Used as a primary framework for mechanics and progression. We borrow the shape
+and philosophy, not the raw numbers or setting.
 
-What we borrow from RSSG:
+What we borrow:
 
-- Milestone-based progression (equipment thresholds every 5 levels, flat stat bonuses at 10)
-- Equipment carrying late-game power growth (not just raw stats)
-- Tier promotion system structure
+- Milestone progression (equipment thresholds every 5 levels, flat bonuses at 10)
+- Equipment carrying late-game power growth
+- Tier promotion structure
 - Ability tier scaling with job changes
-- Dungeon/boss design philosophy
 - Equipment rarity tiers as power breakpoints
 
-What we do NOT copy:
+What we don't copy:
 
-- Raw numbers (RSSG scales to 70,000+ attributes; ours stays in the hundreds)
-- Story and setting (our world is mythological amalgam, not VRMMORPG)
-- Exact ability designs (storyboarded separately)
-- Level cap (RSSG goes 200+; our tower caps at 100 floors, level cap at 200)
+- Raw numbers (RSSG: 70,000+ attributes. Ours: hundreds)
+- Story/setting (mythological amalgam, not VRMMORPG)
+- Level cap (RSSG: 200+. Ours: tower 100 floors, level cap 200)
 
 ---
 
@@ -37,379 +37,129 @@ What we do NOT copy:
 
 ### Setting
 
-The world is an amalgamation of the world's mythological, religious, and folklore
-traditions. Enemies, bosses, quests, and lore draw from all cultures simultaneously.
-Greek, Norse, Egyptian, Chinese, Japanese, Celtic, Mesoamerican, Slavic, and more
-coexist naturally. A player may encounter a Pegasus on the same floor as a Jiangshi
-or a Banshee. No single mythology dominates.
+Mythological amalgam — all cultures coexist. Greek, Norse, Egyptian, Chinese,
+Japanese, Celtic, Mesoamerican, Slavic and more. A Pegasus and a Jiangshi can
+appear on the same floor. No single mythology dominates.
 
 ### The Tower — Axis Mundi
 
-The central structure of the game is Axis Mundi — the world axis. In mythology,
-nearly every culture has a version of this concept:
+The world axis. Every culture has a version:
+Norse: Yggdrasil | Hindu: Mount Meru | Greek: Mount Olympus
+Egyptian: Benben | Aztec: Pyramid of the Sun | Babylon: Ziggurat
 
-- Norse: Yggdrasil
-- Hindu: Mount Meru
-- Greek: Mount Olympus
-- Egyptian: Benben / Pyramid
-- Aztec: Pyramid of the Sun
-- Babylon: Ziggurat
-- Chinese: Kunlun Mountain
-
-Axis Mundi is the convergence point of all mythologies. The higher a player climbs,
-the closer they approach the divine. The tower has 100 floors. Floor 1 has rats.
+Axis Mundi is the convergence point of all mythologies. Floor 1 has rats.
 Floor 100 has something that makes gods nervous.
 
-Clearing the tower (Floor 100) is not the end of the game — it is the end of Phase 1
-content. Levels continue to 200. The tower was the beginning, not the destination.
+Clearing Floor 100 ends Phase 1 content. Levels continue to 200.
+The tower was the beginning, not the destination.
 
 ---
 
-## 2. Core Game Loop
-
-### Current Implementation (Phase 1 — Console Dungeon Crawler)
+## 2. Platform Path
 
 ```
-Town (Base) → Floor Entry → 1-3 Encounters → Floor Complete → Loot/Rest/Save → Next Floor
+Phase 1 (COMPLETE) : C# console dungeon crawler — ascension-cs repo
+Phase 2 (NEXT)     : Godot 2D top-down RPG — ascension-2d repo (new)
+    - Action combat (time gauge replaces turn order)
+    - Overworld exploration
+    - Quest system
+    - Full story/dialogue
+Phase 3            : Godot 2D MMO
+    - Server backend, multiplayer, guilds
+Phase 4 (deferred) : 3D
 ```
 
-### Future Phases
+### Engine Decision: Godot
 
-- Phase 2: 2D RPG (Godot, top-down overworld)
-- Phase 3: 2D MMO (Godot + server backend)
-- Phase 4 (deferred indefinitely): 3D
+Chosen over Unity for:
 
-Each phase reuses the combat engine and class system built in Phase 1.
+- Superior 2D tooling (built from ground up, not bolted on)
+- Zero cost forever (Unity had 2023 runtime fee controversy)
+- C# is first-class (same language as Phase 1)
+- Built-in multiplayer API adequate for Phase 3
+
+Free asset sources (engine agnostic):
+
+- itch.io/game-assets (filter free)
+- kenney.nl/assets (professional quality, free)
+- opengameart.org (community, all free)
+- freesound.org (sound/music)
+- github.com/godotengine/awesome-godot (curated Godot resources)
+
+### What Ports from Phase 1 to Phase 2
+
+```
+PORTS DIRECTLY (logic, rewrite as Godot C# scripts):
+- CombatCalculator.cs    ← all math, pure functions
+- XpSystem.cs            ← all logic, pure functions
+- TowerConfig.cs         ← all constants
+- MobFactory.cs          ← reads from DB, builds Character
+- All Models/            ← records port to classes/structs in Godot
+
+STAYS (database):
+- ascension.db           ← SQLite file, copy to new project
+- DB schema unchanged
+- Add save data tables
+
+REPLACED (display/UI):
+- Spectre.Console        ← Godot nodes replace all UI
+- CombatManager.cs       ← Godot scene tree manages state
+- GameLoop.cs            ← Godot SceneManager handles flow
+- Turn-based loop        ← Action gauge system replaces Option B
+```
+
+---
+
+## 3. Core Game Loop
+
+### Phase 2 Target Loop
+
+```
+Town (Base Camp) → Enter Tower Floor → Encounter(s) → Floor Complete
+→ Loot / Rest / Level Up / Save → Next Floor or Return to Town
+```
 
 ### Floor Structure
 
 ```
-Floor 1-4   → Standard encounters (1-3 fights)
-Floor 5     → Elite encounter
-Floor 6-9   → Standard encounters
-Floor 10    → Boss + Checkpoint (save point unlocked)
-(pattern repeats every 10 floors)
+Floor 1-4   : Standard encounters (1-3 fights)
+Floor 5     : Elite encounter
+Floor 6-9   : Standard encounters
+Floor 10    : Boss + Checkpoint (save point, full restore)
+(Repeats every 10 floors)
 ```
 
-### Floor Themes (Future — Phase 2)
+### Floor Themes (Phase 2 — when overworld exploration added)
 
 ```
-Floors 1-10   → Plains
-Floors 11-20  → Forest
-Floors 21-30  → Mountain
-Floors 31-40  → Ruins
-Floors 41-50  → Underground Caverns
-Floors 51-60  → Ancient Temple
-Floors 61-70  → Frozen Wastes
-Floors 71-80  → Volcanic Depths
-Floors 81-90  → Celestial Approach
-Floors 91-100 → The Apex
-```
-
----
-
-## 3. Mob Scaling
-
-### Philosophy
-
-- Early game (1-20): Mobs roughly equal player stats. Skill matters.
-- Mid game (21-90): Mobs pull 20-80% ahead. Gear starts to matter.
-- Late game (91-200): Mobs pull 100%+ ahead. Gear + abilities required.
-
-### Mob Stat Pool Formula
-
-```
-mobStatPool(level) = 20 + (level - 1)^1.3 × 1.82
-```
-
-All constants live in TowerConfig.cs:
-
-- MobScaleBase = 20.0
-- MobScalePow = 1.3
-- MobScaleFactor = 1.82
-
-| Level | Mob stats | Player raw stats | Mob advantage |
-| ----- | --------- | ---------------- | ------------- |
-| 1     | 20        | 20               | Even          |
-| 20    | 103       | 91               | +13%          |
-| 50    | 307       | 209              | +47%          |
-| 100   | 735       | 411              | +79%          |
-| 200   | ~2,100    | ~750             | +180%         |
-
-### Enemy Type Multipliers
-
-```
-Standard mob : 1.0x stat pool
-Elite        : 1.3x - 1.5x stat pool  (random within range)
-Boss         : 1.8x - 2.3x stat pool  (random within range)
-```
-
-### Stat Flag Distribution System
-
-Each enemy template in the database has five flags (one per attribute).
-Flags determine how the total stat pool is distributed across STR/AGI/VIT/INT/WIL.
-Every individual enemy instance rolls randomly within its flag's range — same
-archetype, different individual. No two rats are identical.
-
-```
-Flag 0 / null : excluded from primary allocation (gets remainder only)
-Flag 1        : 5%  - 10% of total stat pool
-Flag 2        : 15% - 20% of total stat pool
-Flag 3        : 25% - 30% of total stat pool
-Flag 4        : 35% - 40% of total stat pool
-Flag 5        : 45% - 50% of total stat pool
-```
-
-Allocation order:
-
-1. Sort flagged attributes highest flag to lowest
-2. For each, roll a random % within that flag's range, deduct from pool
-3. Any remainder → split across ALL five attributes, rounded UP (harder, not floored)
-
-Example — Dustfang Rat (StrFlag=3, AgiFlag=2, VitFlag=3, IntFlag=1, WilFlag=0):
-
-```
-Pool at Level 1: 20
-Roll STR (Flag 3): 27% → ceil(5.4) = 6
-Roll VIT (Flag 3): 26% → ceil(5.2) = 6
-Roll AGI (Flag 2): 17% → ceil(3.4) = 4
-Roll INT (Flag 1):  7% → ceil(1.4) = 2
-Remainder: 20 - 6 - 6 - 4 - 2 = 2
-Split across all 5: ceil(2/5) = 1 each
-Final: STR 7, VIT 7, AGI 5, INT 3, WIL 1
-```
-
-### Enemy Categories (Database)
-
-An enemy can belong to multiple categories (many-to-many relationship).
-A zombie rat is both Vermin AND Undead — this is correct modeling.
-
-Current categories seeded: Vermin, Beast, Undead, Spirit, Elemental, Divine, Cursed
-
-Category membership affects:
-
-- Loot table selection (future)
-- Status effect resistances (future — all Undead resist poison, etc.)
-- Ability assignments (future)
-
-### Floor-Level Parity
-
-```
-Floor N → Level N standard mobs
-Elite   → approximately Level N+2 effective strength
-Boss    → approximately Level N+3 to N+5 effective strength
+Floors 1-10   : Plains
+Floors 11-20  : Forest
+Floors 21-30  : Mountain
+Floors 31-40  : Ruins
+Floors 41-50  : Underground Caverns
+Floors 51-60  : Ancient Temple
+Floors 61-70  : Frozen Wastes
+Floors 71-80  : Volcanic Depths
+Floors 81-90  : Celestial Approach
+Floors 91-100 : The Apex
 ```
 
 ---
 
-## 4. XP and Progression
+## 4. Combat System
 
-### XP Per Kill
+### Architecture (Phase 1 — reference for Phase 2 port)
 
-```
-Standard mob : mob level × 10 XP
-Elite        : mob level × 15 XP
-Boss         : mob level × 25 XP
-```
+- **Decide layer**: CombatCalculator.cs — pure static functions, no state
+- **Apply layer**: CombatManager.cs — stateful mutations
+- All records immutable — always re-fetch after UpdateCharacter calls
 
-All multipliers live in TowerConfig.cs.
+### Phase 2 Combat — Action Gauge (Option C)
 
-### XP to Level Up
-
-```
-XP required = currentLevel × 150
-```
-
-| Level | XP needed | Approx floors to level |
-| ----- | --------- | ---------------------- |
-| 1→2   | 150       | 3 floors               |
-| 5→6   | 750       | 3 floors               |
-| 20→21 | 3000      | 3 floors               |
-| 50→51 | 7500      | 3 floors               |
-
-Early floors are shorter (fewer fights) so early levels feel slightly harder to earn.
-The jump from Level 1 to 2 should feel like an achievement.
-
-### Level Cap
-
-Maximum level: 200
-Tower floors: 100 (Floor 100 = end of Phase 1 content)
-Levels 101-200 = Phase 2+ content
-
-### Level Up Timing
-
-- Phase 1 (console): Level up and stat allocation at floor completion screen
-- Phase 2+ (2D): Level up after defeating a mob; stat allocation when player chooses
-
-### Stat Points Per Level — RSSG-Inspired System
-
-```
-Standard level up      : +3 free points
-Every 5th level        : +3 free points + equipment tier unlocked
-Every 10th level       : +3 free points + flat +5 to ALL attributes
-Tier job change levels : +10 free points + attribute reset option
-Level 200 (cap)        : +15 free points + flat +10 to ALL attributes
-```
-
-Equipment tier unlocks (every 5 levels) — gear carries the late-game power growth
-that raw stats alone cannot.
-
-### Checkpoint Bonuses (Every 10th Floor Boss)
-
-```
-All checkpoints:
-├── Full HP/SP/MP restore
-└── Save point unlocked
-
-Floor 50: +1 bonus point into class primary stat
-Floor 100: Special reward TBD + Title "Apex Climber"
-```
-
----
-
-## 5. Death Mechanics
-
-### On Death
-
-```
-Lose 20% of total accumulated XP
-Respawn at last cleared checkpoint floor
-If no checkpoint cleared → respawn at Floor 1
-Keep: character, level, attributes, abilities, gear
-Lose: floor progress since last checkpoint
-```
-
-### Level Regression
-
-XP loss may drop player below current level threshold → regress in level.
-Stat points and abilities from the lost level are NOT removed.
-
-### Regression Hard Floors
-
-```
-Adventurer (Tier 0)  : Cannot drop below Level 1
-Tier 1 class         : Cannot drop below Level 20
-Tier 2 class         : Cannot drop below Level 50
-Tier 3 class         : Cannot drop below Level 90
-Tier 4 class         : Cannot drop below Level 140
-Level 200            : Cannot regress
-```
-
----
-
-## 6. Class System
-
-### Birth Class
-
-All characters begin as Adventurer (Level 1-20).
-Access to Tier 0 abilities only. Level 20 triggers First Job Change.
-
-### Job Change Levels
-
-```
-Tier 0 → Tier 1 : Level 20   (First Job Change)
-Tier 1 → Tier 2 : Level 50   (Second Job Change)
-Tier 2 → Tier 3 : Level 90   (Third Job Change)
-Tier 3 → Tier 4 : Level 140  (Fourth Job Change)
-Level 200        : True cap — something special (TBD)
-```
-
-Gaps between tiers: 30, 40, 50, 60 levels — intentionally widening.
-
-### Realm System
-
-```
-Mortal Realm      : Level 1-20    (Adventurer)
-Awakened Realm    : Level 21-50   (Tier 1)
-Exalted Realm     : Level 51-90   (Tier 2)
-Heroic Realm      : Level 91-140  (Tier 3)
-Legendary Realm   : Level 141-200 (Tier 4)
-```
-
-NPCs react to realm, not level. Level 200 may unlock a realm beyond Legendary (TBD).
-
-### Attribute Reset
-
-- One full reset offered at Tier 1 job change (Level 20) — optional
-- This is the ONLY full reset in the game, ever
-- Each tier job change grants fresh points for that tier ONLY
-
-### Starting Classes
-
-| Class   | STR | AGI | VIT | INT | WIL | Identity             |
-| ------- | --- | --- | --- | --- | --- | -------------------- |
-| Warrior | 60  | 40  | 55  | 20  | 25  | Frontline, physical  |
-| Mage    | 15  | 30  | 25  | 75  | 55  | Pure arcane, fragile |
-| Rogue   | 35  | 70  | 30  | 35  | 30  | Speed, precision     |
-| Cleric  | 30  | 25  | 45  | 40  | 60  | Spirit, support      |
-
-### Evolution Paths
-
-**Warrior:** Sentinel (tank) | Berserker (DPS) | Champion (hybrid) | ★ Warlord (hidden)
-**Mage:** Elementalist (attack) | Enchanter (control) | Arcanist (hybrid) | ★ Archmage (hidden)
-**Rogue:** Assassin (melee) | Marksman (ranged) | Shadow (hybrid) | ★ Phantom (hidden)
-**Cleric:** Priest (heal) | Paladin (tank) | Templar (solo) | ★ Saint (hidden)
-
-Hidden classes: require specific playstyle during Levels 1-20, harder quest,
-failure has consequences (TBD). Specific unlock conditions TBD per class.
-
-### Equipment Rarity Tiers
-
-```
-Common      : Level 1+
-Iron        : Level 5+
-Silver      : Level 10+
-Gold        : Level 20+    (Tier 1 threshold)
-Dark Gold   : Level 35+
-Epic        : Level 50+    (Tier 2 threshold)
-Legendary   : Level 90+    (Tier 3 threshold)
-Divine      : Level 140+   (Tier 4 threshold)
-Mythic      : Level 200
-```
-
----
-
-## 7. Ability System (Design Phase — Not Yet Implemented)
-
-### Tiers
-
-```
-Tier 0: General, all classes, Levels 1-20
-Tier 1: Class-specific, Level 20 job change
-Tier 2: Evolution-specific, Level 50 job change
-Tier 3: Advanced, Level 90 job change
-Tier 4: Transcendence, Level 140+
-```
-
-### Cost Philosophy
-
-- Physical abilities: SP cost derived from STR
-  `Cost = max(1, baseCost + level/10 - Scale(STR, 0.5f))`
-- Magic abilities: MP cost, softer scaling (level/20)
-- All costs attribute-derived, not hardcoded flat numbers
-- Costs increase with ability tier
-
-### Tier 0 Ability Categories
-
-| Category     | Examples                   | Signal        |
-| ------------ | -------------------------- | ------------- |
-| Basic Combat | Power Strike, Quick Step   | Universal     |
-| Physical     | Rend, Rush, Parry Counter  | Warrior/Rogue |
-| Arcane       | Mana Bolt, Ward            | Mage/Cleric   |
-| Survival     | Second Wind, Steady Breath | Universal     |
-| Utility      | Detect, Inspect, Forage    | Universal     |
-
-Inspect (future): reveals enemy stats currently hidden in UI.
-
----
-
-## 8. Combat System Notes
-
-### Architecture
-
-- Decide layer: CombatCalculator.cs — pure static functions, no state
-- Apply layer: CombatManager.cs — stateful, mutates via immutable record with expressions
-- Always re-fetch character from state after any UpdateCharacter call (stale reference rule)
+Replaces turn-based Option B. Characters have a time-to-next-action counter.
+Faster characters (higher AGI/Initiative) act more frequently.
+Effectively real-time with pause. Renders as visual bar draining in UI.
+Design TBD when Phase 2 starts — current math foundation carries over.
 
 ### Attribute → Derived Stat Formulas
 
@@ -436,87 +186,340 @@ BlockSpCost     = max(1, 5 + level/10 - Scale(Blend(VIT,STR), 0.5))
 DodgeSpCost     = max(1, 3 + level/10 - Scale(AGI, 0.5))
 ```
 
-### Combat Rules
-
-- Hit chance: Accuracy / (Accuracy + Evasion) + 0.25 flat
-- Damage reduction: DEFENSE_K(30) / (DEFENSE_K + defense)
-- No minimum damage — 0 damage is valid
-- Block: deterministic (BlockSpeed × 1.5 >= attacker Initiative)
-- Full block: 100% reduction. Partial: 50% reduction
-- No passive HP regen in combat
-- SP/MP regen every round (min 1), doubled on Wait action
-- Exhausted (0 SP): can still attack at 0.75x modifier, cannot block
-
-### Stamina Actions
+### Hit / Damage / Block Formulas
 
 ```
-Attack : costs AttackSpCost (derived from STR)
-Defend : costs BlockSpCost  (derived from VIT/STR blend)
-Wait   : 0 cost, double SP/MP regen this round
-Dodge  : costs DodgeSpCost  (not yet implemented)
+hitChance  = Accuracy / (Accuracy + Evasion) + 0.25
+damage     = (int)(rawDamage × modifiers × DEFENSE_K/(DEFENSE_K + defense))
+             DEFENSE_K = 30. No minimum — 0 damage is valid.
+fullBlock  = BlockSpeed × 1.5 >= attacker Initiative
+             Full block: 100% reduction. Partial: 50%.
+             Block deterministic (no dice). Hit/miss uses dice.
 ```
 
-### Turn Order (Current)
-
-Recalculated after each action by Initiative. HasActed flag tracks who has gone.
-Round ends when all living fighters have acted.
-
-Future (Phase 2): Action gauge — time-to-next-action counter replaces rounds.
-
-### AI Decision Tree
+### Stamina Rules
 
 ```
-1. SP == 0 AND HP > 40%             → Wait
-2. Target HP < 15%                  → Attack (finish them)
-3. HP < 30% AND defended last turn  → Attack (no turtling)
-4. HP < 30% AND slower than target  → Defend
-5. HP < 30% AND faster than target  → Attack
-6. Default                          → Attack
+Attack  : costs AttackSpCost (derived from STR + level)
+Defend  : costs BlockSpCost  (derived from VIT/STR + level)
+Wait    : 0 cost, doubles SP and MP regen this round
+Dodge   : costs DodgeSpCost  (not yet implemented)
+0 SP    : can still attack at 0.75x modifier, cannot block
 ```
-
-### Enemy Display
-
-- Enemy HP: bar + condition label (no numbers). Player HP: bar + numbers.
-- Conditions: Unscathed / Scratched / Bloodied / Wounded / Critical / Near Death
-- Enemy stats (???) hidden until Inspect ability unlocked
-- IsPlayerControlled flag on Character — flippable by future Dominate/Charm abilities
-
----
-
-## 9. Status Effects (Planned)
-
-AttackResult carries a nullable StatusEffect string field (already wired).
-Design TBD during ability storyboarding.
-Examples: Bleed, Poison, Burn, Stun, Slow, Charm, Blind, Freeze.
-
----
-
-## 10. Stamina Philosophy
 
 Two-force SP cost system:
+`Final Cost = max(1, baseCost + level/10 - attributeReduction)`
+Level scaling pushes cost up. Attribute investment pulls it down.
+
+### SP/MP Regen
 
 ```
-Final SP Cost = max(1, baseCost + level/10 - attributeReduction)
+Every round: base regen applies (min 1), regardless of action taken
+Wait action: doubles both SP and MP regen
+HP: NO passive regen in combat. Only via abilities/items/rest.
 ```
 
-Level scaling pushes cost up. Attribute investment pulls cost down.
-Both MaxSP and costs grow — ratio stays meaningful at all levels.
+### Block → Wait → Attack Rhythm
 
-Block → Wait → Attack rhythm is a core tactical pattern.
+Core tactical pattern. Block incoming damage, Wait to double-regen SP,
+Attack with full resources. Rewards patient play at all levels.
+
+### AI Decision Tree (Rudimentary — Phase 1)
+
+```
+1. SP == 0 AND HP > 40%            → Wait
+2. Target HP < 15%                 → Attack (finish them)
+3. HP < 30% AND defended last turn → Attack (no turtling)
+4. HP < 30% AND slower than target → Defend
+5. HP < 30% AND faster than target → Attack
+6. Default                         → Attack
+```
+
+### Enemy Display Rules
+
+- Enemy HP: bar graphic + condition label. NO exact numbers.
+- Conditions: Unscathed / Scratched / Bloodied / Wounded / Critical / Near Death
+- Enemy stats hidden (???) until Inspect ability unlocked (future)
+- IsPlayerControlled flag on Character — flippable by Dominate/Charm abilities
+
+### Status Effects (Planned — not yet implemented)
+
+AttackResult.StatusEffect string field already wired.
+Examples: Bleed, Poison, Burn, Stun, Slow, Charm, Blind, Freeze.
+Design TBD during ability storyboarding.
 
 ---
 
-## 11. Database
+## 5. Mob Scaling
+
+### Philosophy
+
+- Early (1-20): Mobs ≈ player stats. Skill matters.
+- Mid (21-90): Mobs pull 20-80% ahead. Gear matters.
+- Late (91-200): Mobs pull 100%+ ahead. Gear + abilities required.
+
+Mob scaling outpaces raw stat growth intentionally.
+Equipment bridges the gap. This is why gear matters at high levels.
+
+### Mob Stat Pool Formula
+
+```
+mobStatPool(level) = 20 + (level - 1)^1.3 × 1.82
+```
+
+Constants in TowerConfig.cs: MobScaleBase=20, MobScalePow=1.3, MobScaleFactor=1.82
+
+| Level | Mob stats | Player raw | Mob advantage |
+| ----- | --------- | ---------- | ------------- |
+| 1     | 20        | 20         | Even          |
+| 20    | 103       | 91         | +13%          |
+| 50    | 307       | 209        | +47%          |
+| 100   | 735       | 411        | +79%          |
+
+### Enemy Type Multipliers
+
+```
+Standard : 1.0x
+Elite    : 1.3x - 1.5x (random within range)
+Boss     : 1.8x - 2.3x (random within range)
+```
+
+### Stat Flag Distribution System
+
+Each enemy template has 5 flags (one per attribute) stored in DB.
+Controls how stat pool distributes across STR/AGI/VIT/INT/WIL.
+Random roll within flag range = same archetype, different individual.
+
+```
+Flag 0/null : remainder only (not primary allocated)
+Flag 1      : 5%  - 10%
+Flag 2      : 15% - 20%
+Flag 3      : 25% - 30%
+Flag 4      : 35% - 40%
+Flag 5      : 45% - 50%
+```
+
+Allocation order: highest flag first → roll random % → deduct from pool.
+Remainder: split across ALL five attributes, rounded UP (harder, not floored).
+
+Dustfang Rat example (StrF3 AgiF2 VitF3 IntF1 WilF0, pool=20):
+
+```
+STR: roll 27% → ceil(5.4) = 6
+VIT: roll 26% → ceil(5.2) = 6
+AGI: roll 17% → ceil(3.4) = 4
+INT: roll  7% → ceil(1.4) = 2
+Remainder 2 → ceil(2/5)=1 each
+Final: STR 7, VIT 7, AGI 5, INT 3, WIL 1
+```
+
+### Enemy Categories (Many-to-Many)
+
+Current: Vermin, Beast, Undead, Spirit, Elemental, Divine, Cursed
+A zombie rat = Vermin AND Undead (correct modeling, not a bug).
+Future use: loot table selection, status effect resistances, ability assignments.
+
+---
+
+## 6. XP and Progression
+
+### XP Per Kill
+
+```
+Standard : mob level × 10
+Elite    : mob level × 15
+Boss     : mob level × 25
+```
+
+### XP to Level Up
+
+`XP required = currentLevel × 150`
+
+| Level | XP needed | ~Floors to level |
+| ----- | --------- | ---------------- |
+| 1→2   | 150       | 3                |
+| 10→11 | 1500      | 3                |
+| 50→51 | 7500      | 3                |
+
+Early floors are shorter → early levels feel slightly harder. Intentional.
+Level 1→2 should feel like an achievement.
+
+### Level Cap: 200
+
+Tower floors: 100. Floors 1-100 = Phase 2 content.
+Levels 101-200 = Phase 3+ content (overworld, MMO).
+
+### Level Up Timing
+
+- Phase 2: Level up triggers after defeating a mob
+- Stat allocation: when player chooses (menu/pause)
+
+### Stat Points Per Level (RSSG-inspired)
+
+```
+Standard level    : +3 free points
+Every 5th level   : +3 free points + equipment tier unlocks
+Every 10th level  : +3 free points + flat +5 to ALL attributes
+Job change levels : +10 free points + optional attribute reset
+Level 200 (cap)   : +15 free points + flat +10 to ALL attributes
+```
+
+Priority (higher supersedes, not stacked):
+Level 200 (+15+flat10) > job change (+10) > mult10 (+3+flat5) > mult5 (+3) > standard (+3)
+
+### Death Mechanics
+
+```
+On death: lose 20% total accumulated XP
+Respawn: last checkpoint floor (or Floor 1 if none cleared)
+Keep: character, level, attributes, abilities, gear
+Lose: floor progress since last checkpoint
+```
+
+Level regression: XP loss may drop below level threshold → regress.
+Stat points and abilities from lost level are NOT removed.
+
+Regression hard floors (cannot drop below):
+
+```
+Tier 0 (Adventurer) : Level 1
+Tier 1              : Level 20
+Tier 2              : Level 50
+Tier 3              : Level 90
+Tier 4              : Level 140
+Level 200           : Cannot regress
+```
+
+---
+
+## 7. Class System
+
+### Birth Class: Adventurer (Level 1-20)
+
+- No class identity yet
+- Access to Tier 0 abilities only (general, not class-locked)
+- Exploration phase — player discovers their playstyle
+- Stats tracked silently to influence job change offer at Level 20
+
+### Job Change Levels
+
+```
+Tier 0 → Tier 1 : Level 20   (+10 points, optional full reset — ONLY reset ever)
+Tier 1 → Tier 2 : Level 50   (+10 points, resets Tier 1 points only)
+Tier 2 → Tier 3 : Level 90   (+10 points, resets Tier 2 points only)
+Tier 3 → Tier 4 : Level 140  (+10 points, resets Tier 3 points only)
+Level 200        : True cap — something special (TBD)
+```
+
+Gaps: 30, 40, 50, 60 levels. Intentionally widening — each tier is a chapter.
+
+### Realm System
+
+```
+Mortal Realm    : Level 1-20    (Adventurer)
+Awakened Realm  : Level 21-50   (Tier 1)
+Exalted Realm   : Level 51-90   (Tier 2)
+Heroic Realm    : Level 91-140  (Tier 3)
+Legendary Realm : Level 141-200 (Tier 4)
+```
+
+NPCs react to realm, not level. A peasant feels your realm, not your number.
+
+### Job Change Quest Logic
+
+```
+Mostly physical ability usage  → Warrior or Rogue quest
+Mostly arcane ability usage    → Mage or Cleric quest
+Balanced usage                 → All four offered (true hybrid path)
+```
+
+Quest nature reveals the class — challenge shows what kind of fighter you are.
+
+### Starting Classes (200 base + 15 bonus at creation)
+
+| Class   | STR | AGI | VIT | INT | WIL | Identity             |
+| ------- | --- | --- | --- | --- | --- | -------------------- |
+| Warrior | 60  | 40  | 55  | 20  | 25  | Frontline, physical  |
+| Mage    | 15  | 30  | 25  | 75  | 55  | Pure arcane, fragile |
+| Rogue   | 35  | 70  | 30  | 35  | 30  | Speed, precision     |
+| Cleric  | 30  | 25  | 45  | 40  | 60  | Spirit, support      |
+
+### Evolution Paths (all at Level 20 job change)
+
+**Warrior:** Sentinel (tank) | Berserker (DPS) | Champion (hybrid) | ★ Warlord (hidden)
+**Mage:** Elementalist (attack) | Enchanter (control) | Arcanist (hybrid) | ★ Archmage (hidden)
+**Rogue:** Assassin (melee) | Marksman (ranged) | Shadow (hybrid) | ★ Phantom (hidden)
+**Cleric:** Priest (heal) | Paladin (tank) | Templar (solo) | ★ Saint (hidden)
+
+Hidden classes:
+
+- Require specific playstyle conditions during Levels 1-20
+- Quest is noticeably harder than standard
+- Failing has consequences (TBD — storyboard later)
+- Specific unlock conditions TBD per class
+
+### Equipment Rarity Tiers
+
+```
+Common    : Level 1+
+Iron      : Level 5+    (first threshold)
+Silver    : Level 10+
+Gold      : Level 20+   (Tier 1 job change)
+Dark Gold : Level 35+
+Epic      : Level 50+   (Tier 2 job change)
+Legendary : Level 90+   (Tier 3 job change)
+Divine    : Level 140+  (Tier 4 job change)
+Mythic    : Level 200   (true cap)
+```
+
+Finding gear above your expected floor rarity = meaningful discovery.
+
+---
+
+## 8. Ability System (Design Phase — Phase 2)
+
+### Tiers
+
+```
+Tier 0 : General, all classes, Levels 1-20
+Tier 1 : Class-specific, unlocked at Level 20 job change
+Tier 2 : Evolution-specific, Level 50 job change
+Tier 3 : Advanced, Level 90 job change
+Tier 4 : Transcendence, Level 140+
+```
+
+### Cost Philosophy
+
+- All costs derived from attributes, not hardcoded
+- Physical (SP): `Cost = max(1, baseCost + level/10 - Scale(STR, 0.5f))`
+- Magical (MP): softer scaling `level/20`
+- Costs increase with ability tier
+
+### Tier 0 Ability Categories
+
+| Category     | Examples                   | Signals       |
+| ------------ | -------------------------- | ------------- |
+| Basic Combat | Power Strike, Quick Step   | Universal     |
+| Physical     | Rend, Rush, Parry Counter  | Warrior/Rogue |
+| Arcane       | Mana Bolt, Ward            | Mage/Cleric   |
+| Survival     | Second Wind, Steady Breath | Universal     |
+| Utility      | Detect, Inspect, Forage    | Universal     |
+
+Inspect (future): reveals enemy stats currently shown as ???
+
+---
+
+## 9. Database
 
 ### Technology
 
-SQLite via Microsoft.Data.Sqlite. Single file at `data/ascension.db`.
-Committed to repo — contains seed data the game needs to run.
+SQLite via Microsoft.Data.Sqlite.
+DB file: `data/ascension.db` — committed to repo.
 
-Future split:
+Future split (Phase 3):
 
-- `ascension.db`: seed/game data (committed)
-- `save.db`: player save data (gitignored, Phase 2)
+- `ascension.db`: game/seed data (committed)
+- `save.db`: player save data (gitignored)
 
 ### Current Schema
 
@@ -541,8 +544,8 @@ EnemyTemplates (
 )
 
 EnemyCategories (
-    EnemyId    TEXT NOT NULL,  → FK to EnemyTemplates
-    CategoryId TEXT NOT NULL,  → FK to Categories
+    EnemyId    TEXT NOT NULL  → FK EnemyTemplates
+    CategoryId TEXT NOT NULL  → FK Categories
     PRIMARY KEY (EnemyId, CategoryId)
 )
 ```
@@ -552,129 +555,189 @@ EnemyCategories (
 Categories: Vermin, Beast, Undead, Spirit, Elemental, Divine, Cursed
 Enemies: Dustfang Rat (Floor 1-10, Vermin, StrF3 AgiF2 VitF3 IntF1 WilF0)
 
-### Planned Tables (Future)
+### Planned Tables
 
 ```
-Abilities       ← ability definitions
-EnemyAbilities  ← which abilities each enemy has (many-to-many)
-LootTables      ← loot definitions
-EnemyLoot       ← which loot each enemy drops (many-to-many)
-PlayerSaves     ← save data (separate file, gitignored)
+Abilities       : ability definitions
+EnemyAbilities  : which abilities each enemy has (many-to-many)
+LootTables      : loot definitions
+EnemyLoot       : which loot each enemy drops (many-to-many)
+PlayerSaves     : save data (separate file, gitignored)
 ```
 
 ### Design Principles
 
-- Third normal form: each table has one responsibility
-- Relationships via foreign keys, never duplicated data
-- Many-to-many via join tables (EnemyCategories pattern)
-- A zombie rat belongs to both Vermin AND Undead — correct modeling
+- Third normal form: one table, one responsibility
+- Relationships via foreign keys, not duplicated data
+- Many-to-many via join tables
+- A zombie rat is Vermin AND Undead — both rows in EnemyCategories
 
 ---
 
-## 12. Save System (Planned)
+## 10. Phase 2 Starting Point — What to Build First in Godot
 
-- Save at checkpoint floors (every 10th floor boss cleared)
-- System.Text.Json for Phase 1 saves
-- PostgreSQL + EF Core for Phase 3 MMO scale
-- Current enemy C# files (Vermin.cs etc.) will become DB seed data
+This is the porting roadmap. Read this at the start of the next session.
 
----
+### Step 1 — Godot Project Setup
 
-## 13. Equipment and Loot (Planned)
+- New project: `ascension-2d`
+- New repo: `github.com/lulMen/ascension-2d`
+- Copy `docs/DESIGN.md` into `ascension-2d/docs/`
+- Copy `data/ascension.db` into `ascension-2d/data/`
+- Language: C# (.NET)
 
-Rarity tiers in Section 6. Loot tables TBD during storyboarding.
-Equipment bridges the gap between player raw stats and mob scaling.
-This is why mob scaling outpaces raw stat growth — gear is the intended equalizer.
+### Step 2 — Port Core Logic (no visuals yet)
 
----
-
-## 14. Future Platform Path
+Port these files as Godot C# scripts (minimal changes needed):
 
 ```
-Phase 1 (current): C# console dungeon crawler
-Phase 2: Godot 2D top-down RPG
-    - Action combat (time gauge replaces turn order)
-    - Overworld exploration, quests, dialogue
-Phase 3: Godot 2D MMO
-    - Server backend, multiplayer, guilds
-Phase 4 (indefinitely deferred): 3D
+CombatCalculator.cs  → Scripts/Combat/CombatCalculator.cs
+XpSystem.cs          → Scripts/Core/XpSystem.cs
+TowerConfig.cs       → Scripts/Core/TowerConfig.cs
+MobFactory.cs        → Scripts/Data/MobFactory.cs
+All Models/          → Scripts/Models/
 ```
 
----
+Keep logic pure — no Godot-specific code in these files yet.
+They should compile and pass unit tests independently.
 
-## 15. Planned Tools / Libraries
-
-| Tool                  | Purpose                         | Status  |
-| --------------------- | ------------------------------- | ------- |
-| Spectre.Console       | Terminal UI                     | Active  |
-| Microsoft.Data.Sqlite | Database                        | Active  |
-| System.Text.Json      | Save files                      | Planned |
-| xUnit                 | Unit tests (CombatCalculator)   | Planned |
-| SQLite + Dapper       | Cleaner DB queries (Phase 2)    | Future  |
-| PostgreSQL + EF Core  | MMO backend                     | Phase 3 |
-| Godot (C# bindings)   | 2D game engine                  | Phase 2 |
-| DB Browser for SQLite | Visual DB management (dev tool) | Active  |
-
----
-
-## 16. Repo Structure
+### Step 3 — Scene Structure
 
 ```
-ascension-cs/
-├── src/
-│   ├── Models/          ← Pure data records (no logic)
-│   ├── Combat/          ← CombatCalculator (Decide) + CombatManager (Apply)
-│   ├── Core/            ← TowerConfig, XpSystem, FloorManager (in progress)
+res://
+├── Scenes/
+│   ├── Main.tscn           ← entry point
+│   ├── MainMenu.tscn
+│   ├── CharacterCreation.tscn
+│   ├── TowerFloor.tscn     ← the combat scene
+│   ├── FloorTransition.tscn← level up, loot, save
+│   └── HUD.tscn            ← HP/SP/MP bars, enemy panel
+├── Scripts/
+│   ├── Combat/
+│   ├── Core/
 │   ├── Data/
-│   │   ├── Database/    ← DbConfig, DbInitializer
-│   │   ├── Enemies/     ← Vermin.cs (legacy, migrating to DB)
-│   │   └── Fighters.cs  ← Demo characters (temporary)
-│   ├── UI/              ← All Spectre.Console display logic
-│   └── Program.cs       ← Entry point (3 lines)
-├── data/
-│   └── ascension.db     ← SQLite database (committed)
-└── docs/
-    └── DESIGN.md        ← This file
+│   ├── Models/
+│   └── UI/
+├── Assets/
+│   ├── Sprites/
+│   ├── Tilesets/
+│   └── Audio/
+└── data/
+    └── ascension.db
 ```
 
-Rules:
+### Step 4 — First Visual Build
 
-- Models/ never imports from Combat/
-- Display logic only in UI/
-- All tunable constants in TowerConfig.cs
-- Always re-fetch character from CombatManager state after mutations
+Build in this order:
 
----
+1. HUD — HP/SP/MP bars (Godot ProgressBar nodes)
+2. Character sprite placeholder on screen
+3. Enemy sprite placeholder on screen
+4. Basic attack animation (sprite flash, damage number popup)
+5. Action gauge (Godot Timer + ProgressBar)
+6. Wire CombatCalculator to the visual combat
 
-## 17. Current Build State
+### Step 5 — Action Gauge Combat (Option C)
 
-### Implemented and Working
+Replace turn order with time gauge:
 
-- Full character model (Identity, Progression, Control, Combat)
-- CombatCalculator: all derived stats, hit/damage/block resolution, turn order
-- CombatManager: full Apply layer, SP costs, regen, Wait action
-- CharacterCreation: name input, arrow-key stat allocation, live preview
-- MainMenu, GameLoop: full game flow with player-controlled combat
-- CombatDisplay: HP/SP/MP bars, condition labels, enemy obfuscation, action menu
-- TowerConfig: all game constants and helper methods
-- XpSystem: GainXp (with level up events), ApplyDeath, SpendStatPoint
-- SQLite: schema created, categories and Dustfang Rat seeded
+- Each combatant has a gauge filling based on Initiative
+- When gauge fills → that character acts
+- Player gets action menu when their gauge fills
+- Enemy acts automatically when theirs fills
+- Faster characters act more often, not just first
 
-### In Progress
+This is the core Phase 2 design work. No detailed spec yet —
+design it as you build it, starting from the math foundation.
 
-- MobFactory: reads enemy templates from DB, applies flag system, generates Character
-- FloorManager: floor progression, encounter generation, XP awards
+### Step 6 — Floor Progression
 
-### Not Yet Started
+Wire FloorManager (port from Phase 1 design):
 
-- Floor transition screen (level up display, stat allocation)
-- Save/load system
-- Multiple enemies per encounter
-- Ability system
-- Loot system
-- Named boss enemies
+- Floor entry → generate encounters from DB
+- Encounter complete → award XP, check level up
+- Floor complete → transition screen
+- Boss floor → checkpoint, save, full restore
 
 ---
 
-_Update this document whenever a significant design decision is made._
-_The code captures implementation. This captures why._
+## 11. What's NOT Done Yet (Backlog)
+
+### Needs Building in Phase 2
+
+- [ ] Action gauge combat
+- [ ] Visual combat scene
+- [ ] FloorManager (port from Phase 1 design, not fully built)
+- [ ] Floor transition screen (level up, stat allocation)
+- [ ] Save/load system (System.Text.Json Phase 1, SQLite Phase 2)
+- [ ] Multiple enemies per encounter
+- [ ] Named boss enemies in DB
+- [ ] Loot system + loot tables
+- [ ] Town/base camp scene
+- [ ] Overworld map (later Phase 2)
+
+### Needs Storyboarding First
+
+- [ ] Full ability system (Tier 0 through Tier 4)
+- [ ] Enemy roster beyond Dustfang Rat
+- [ ] Boss designs (named, with abilities)
+- [ ] Hidden class unlock conditions
+- [ ] Hidden class quest consequences for failure
+- [ ] Status effect interactions
+- [ ] Loot table design
+- [ ] Story/dialogue/lore
+- [ ] Quest system design
+- [ ] Level 200 "something special"
+
+### Design Decisions Still Open
+
+- [ ] Exactly what happens at Level 200
+- [ ] Realm beyond Legendary (Level 200+)
+- [ ] Tower completion reward (Floor 100)
+- [ ] Post-tower content structure before Phase 3
+
+---
+
+## 12. Phase 1 Reference Repo
+
+`github.com/lulMen/ascension-cs`
+
+Complete console implementation. Reference this when porting logic.
+All combat math is working and tested. All formulas are validated.
+Do not modify this repo — it is the archived Phase 1 reference.
+
+---
+
+## 13. Tools and Libraries
+
+| Tool                  | Purpose                      | Status  |
+| --------------------- | ---------------------------- | ------- |
+| Godot 4 (C#)          | 2D game engine               | Phase 2 |
+| Microsoft.Data.Sqlite | Database                     | Active  |
+| System.Text.Json      | Save files (Phase 2 interim) | Planned |
+| xUnit                 | Unit tests for combat math   | Planned |
+| SQLite + Dapper       | Cleaner DB queries           | Phase 2 |
+| PostgreSQL + EF Core  | MMO backend                  | Phase 3 |
+| DB Browser for SQLite | Visual DB management (dev)   | Active  |
+| itch.io / Kenney      | Free art assets              | Phase 2 |
+
+---
+
+## 14. Conventions Carried Forward
+
+- Models are pure data (no logic inside them)
+- Decide layer = pure static functions (CombatCalculator pattern)
+- Apply layer = stateful mutations (CombatManager pattern)
+- Always re-fetch from state after any mutation (stale reference rule)
+- Tunable constants in TowerConfig.cs only — never scattered in logic
+- Display logic in its own layer — never mixed with combat logic
+- DB: third normal form, one table one responsibility, joins for many-to-many
+- Enemy stats hidden from player until Inspect ability unlocked
+- IsPlayerControlled flag on Character (not hardcoded in game loop)
+- No passive HP regen in combat — only via abilities/items/rest
+- 0 damage is valid (realistic — high level player tanks a weak hit)
+
+---
+
+_See you in the next session. Start at Section 10._
+_The math works. The design is solid. Time to make it visual._

@@ -1,6 +1,6 @@
 using Spectre.Console;
 using Ascension.Combat;
-using Ascension.Data.Enemies;
+using Ascension.Data.Database;
 using Ascension.Models;
 
 namespace Ascension.UI;
@@ -29,7 +29,12 @@ public static class GameLoop
     // ── Combat Loop ───────────────────────────────────────────
     private static string RunCombat(Character player)
     {
-        var enemy = InitFighter(Vermin.DustfangRat);
+        var enemy = MobFactory.GenerateForFloor(1);
+        if (enemy == null)
+        {
+            AnsiConsole.MarkupLine("[red]No enemy found for this floor.[/]");
+            return "sideA";
+        }
         var combat = new CombatManager(
             sideA: new List<Character> { player },
             sideB: new List<Character> { enemy }
@@ -83,7 +88,7 @@ public static class GameLoop
                                     attacker: actor,
                                     target: target,
                                     type: AttackType.Physical,
-                                    modifiers: 1f,
+                                    modifiers: modifier,
                                     roll: (float)rng.NextDouble()
                                 );
                                 actionTaken = true;
@@ -128,9 +133,8 @@ public static class GameLoop
             logCursor = combat.Log.Count;
 
             AnsiConsole.WriteLine();
-            CombatDisplay.ShowFighters(combat.SideA.First(), combat.SideB.First());
-
             combat.NextRound();
+            CombatDisplay.ShowFighters(combat.SideA.First(), combat.SideB.First());
         }
 
         // ?? "draw" ensures we never return null to ShowResult
@@ -175,23 +179,6 @@ public static class GameLoop
     }
 
     // ── Helpers ───────────────────────────────────────────────
-    private static Character InitFighter(Character fighter)
-    {
-        var stats = CombatCalculator.CalculateDerivedStats(fighter.Attributes, fighter.Level);
-        return fighter with
-        {
-            Resources = new Resources(
-                CurrentHp: stats.MaxHp,
-                CurrentStamina: stats.MaxStamina,
-                CurrentMp: stats.MaxMp,
-                Defending: false,
-                DefendedLastTurn: false,
-                HasActed: false,
-                IsWaiting: false
-            )
-        };
-    }
-
     private static bool ShouldDefend(Character actor, Character target)
     {
         var actorStats = CombatCalculator.CalculateDerivedStats(actor.Attributes, actor.Level);
