@@ -10,7 +10,9 @@ public static class Vermin
         BirthClass: "Monster",
         CurrentClass: "Vermin",
         Tier: 0,
+        Level: 1,
         ResetUsed: false,
+        IsPlayerControlled: false,
         Attributes: new Attributes(
             Strength: 5,
             Agility: 6,
@@ -24,7 +26,8 @@ public static class Vermin
             CurrentMp: 0,
             Defending: false,
             DefendedLastTurn: false,
-            HasActed: false
+            HasActed: false,
+            IsWaiting: false
         )
     );
 }

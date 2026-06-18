@@ -6,5 +6,6 @@ public record Resources(
     int CurrentMp,
     bool Defending,
     bool DefendedLastTurn,
-    bool HasActed
+    bool HasActed,
+    bool IsWaiting
 );

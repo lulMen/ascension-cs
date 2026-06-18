@@ -59,6 +59,18 @@ public class CombatManager
         UpdateCharacter(updated);
     }
 
+    private void ApplySpCost(Character c, int cost)
+    {
+        var updated = c with
+        {
+            Resources = c.Resources with
+            {
+                CurrentStamina = Math.Max(0, c.Resources.CurrentStamina - cost)
+            }
+        };
+        UpdateCharacter(updated);
+    }
+
     // ── Public API ────────────────────────────────────────────
     public Character? GetNextActor()
     {
@@ -75,37 +87,92 @@ public class CombatManager
     public void NextRound()
     {
         _round++;
-        _sideA = _sideA.Select(c => c with
+
+        _sideA = _sideA.Select(c =>
         {
-            Resources = c.Resources with
+            if (c.Resources.CurrentHp <= 0) return c;
+            var stats = CombatCalculator.CalculateDerivedStats(c.Attributes, c.Level);
+            int spRegen = c.Resources.IsWaiting ? stats.SpRegen * 2 : stats.SpRegen;
+            int mpRegen = c.Resources.IsWaiting ? stats.MpRegen * 2 : stats.MpRegen;
+            return c with
             {
-                HasActed = false,
-                DefendedLastTurn = c.Resources.Defending
-            }
+                Resources = c.Resources with
+                {
+                    CurrentStamina = Math.Min(stats.MaxStamina, c.Resources.CurrentStamina + spRegen),
+                    CurrentMp = Math.Min(stats.MaxMp, c.Resources.CurrentMp + mpRegen),
+                    HasActed = false,
+                    Defending = false,
+                    DefendedLastTurn = c.Resources.Defending,
+                    IsWaiting = false
+                }
+            };
         }).ToList();
-        _sideB = _sideB.Select(c => c with
+
+        _sideB = _sideB.Select(c =>
         {
-            Resources = c.Resources with
+            if (c.Resources.CurrentHp <= 0) return c;
+            var stats = CombatCalculator.CalculateDerivedStats(c.Attributes, c.Level);
+            int spRegen = c.Resources.IsWaiting ? stats.SpRegen * 2 : stats.SpRegen;
+            int mpRegen = c.Resources.IsWaiting ? stats.MpRegen * 2 : stats.MpRegen;
+            return c with
             {
-                HasActed = false,
-                DefendedLastTurn = c.Resources.Defending
-            }
+                Resources = c.Resources with
+                {
+                    CurrentStamina = Math.Min(stats.MaxStamina, c.Resources.CurrentStamina + spRegen),
+                    CurrentMp = Math.Min(stats.MaxMp, c.Resources.CurrentMp + mpRegen),
+                    HasActed = false,
+                    Defending = false,
+                    DefendedLastTurn = c.Resources.Defending,
+                    IsWaiting = false
+                }
+            };
         }).ToList();
     }
 
     public void SetDefending(Character c)
     {
-        var updated = c with
+        var fresh = (_sideA.Concat(_sideB)).First(x => x.Id == c.Id);
+        var stats = CombatCalculator.CalculateDerivedStats(fresh.Attributes, fresh.Level);
+
+        if (fresh.Resources.CurrentStamina < stats.BlockSpCost)
         {
-            Resources = c.Resources with
+            _log.Add($"{fresh.Name} is too exhausted to defend!");
+            ExecuteTurn(fresh, GetOpponents(fresh).First(x => x.Resources.CurrentHp > 0),
+                AttackType.Physical, 0.75f, (float)new Random().NextDouble());
+            return;
+        }
+
+        var updated = fresh with
+        {
+            Resources = fresh.Resources with
             {
                 Defending = true,
                 DefendedLastTurn = true
             }
         };
         UpdateCharacter(updated);
+        ApplySpCost(updated, stats.BlockSpCost);
+
+        // re-fetch after SP deduction
+        var afterCost = (_sideA.Concat(_sideB)).First(x => x.Id == c.Id);
+
         MarkActed(updated);
         _log.Add($"{c.Name} braces for impact.");
+    }
+
+    public void Wait(Character c)
+    {
+        var fresh = (_sideA.Concat(_sideB)).First(x => x.Id == c.Id);
+        var updated = fresh with
+        {
+            Resources = fresh.Resources with
+            {
+                IsWaiting = true,
+                HasActed = true
+            }
+        };
+        UpdateCharacter(updated);
+        _log.Add($"{fresh.Name} waits, conserving energy.");
     }
 
     public string? CheckWin() =>
@@ -120,6 +187,13 @@ public class CombatManager
             freshAttacker = freshAttacker with { Resources = freshAttacker.Resources with { Defending = false } };
             UpdateCharacter(freshAttacker);
         }
+
+        // Deduct attack SP cost
+        var atkStats = CombatCalculator.CalculateDerivedStats(freshAttacker.Attributes, freshAttacker.Level);
+        ApplySpCost(freshAttacker, atkStats.AttackSpCost);
+
+        // re-fetch after SP deduction
+        freshAttacker = (_sideA.Concat(_sideB)).First(c => c.Id == freshAttacker.Id);
 
         var opponents = GetOpponents(freshAttacker);
         if (!opponents.Any(c => c.Id == target.Id))

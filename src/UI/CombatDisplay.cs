@@ -1,6 +1,7 @@
 using Spectre.Console;
 using Ascension.Models;
 using Ascension.Combat;
+using System.Runtime.Intrinsics.X86;
 
 namespace Ascension.UI;
 
@@ -48,19 +49,37 @@ public static class CombatDisplay
         string hpBar = HpBar(c.Resources.CurrentHp, stats.MaxHp);
         string status = c.Resources.Defending ? " [blue][[DEFENDING]][/]" : "";
 
-        var content = new Markup(
-            $"[{nameColor}]{c.Name}[/]{status}\n" +
-            $"HP  [{hpColor}]{hpBar} {c.Resources.CurrentHp}/{stats.MaxHp}[/]\n" +
-            $"MP  [blue]{c.Resources.CurrentMp}/{stats.MaxMp}[/]\n" +
-            $"\n" +
-            $"STR [white]{c.Attributes.Strength}[/]  " +
-            $"AGI [white]{c.Attributes.Agility}[/]\n" +
-            $"VIT [white]{c.Attributes.Vitality}[/]  " +
-            $"INT [white]{c.Attributes.Intelligence}[/]  " +
-            $"WIL [white]{c.Attributes.Willpower}[/]"
-        );
+        string content;
 
-        return new Panel(content)
+        if (c.IsPlayerControlled)
+        {
+            string spColor = SpColor(c.Resources.CurrentStamina, stats.MaxStamina);
+            string spBar = HpBar(c.Resources.CurrentStamina, stats.MaxStamina);
+
+            content =
+                $"[{nameColor}]{c.Name}[/]{status}\n" +
+                $"HP  [{hpColor}]{hpBar} {c.Resources.CurrentHp}/{stats.MaxHp}[/]\n" +
+                $"SP  [{spColor}]{spBar} {c.Resources.CurrentStamina}/{stats.MaxStamina}[/]\n" +
+                $"MP  [blue]{c.Resources.CurrentMp}/{stats.MaxMp}[/]\n" +
+                $"\n" +
+                $"STR [white]{c.Attributes.Strength}[/]  " +
+                $"AGI [white]{c.Attributes.Agility}[/]\n" +
+                $"VIT [white]{c.Attributes.Vitality}[/]  " +
+                $"INT [white]{c.Attributes.Intelligence}[/]  " +
+                $"WIL [white]{c.Attributes.Willpower}[/]";
+        }
+        else
+        {
+            content =
+                $"[{nameColor}]{c.Name}[/]{status}\n" +
+                $"HP  [{hpColor}]{hpBar}[/]\n" +
+                $"     {HpCondition(c.Resources.CurrentHp, stats.MaxHp)}\n" +
+                $"\n" +
+                $"[dim]??? ??  ???[/]\n" +
+                $"[dim]??? ??  ???  ???[/]";
+        }
+
+        return new Panel(new Markup(content))
             .Border(BoxBorder.Rounded)
             .Padding(1, 0);
     }
@@ -100,6 +119,27 @@ public static class CombatDisplay
             .Padding(2, 1));
     }
 
+    public static string ShowActionMenu(Character player)
+    {
+        var stats = CombatCalculator.CalculateDerivedStats(player.Attributes, player.Level);
+
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine($"  [grey]Your turn —[/] [yellow]{player.Name}[/]");
+        AnsiConsole.MarkupLine(
+            $"  [grey]SP[/] [{SpColor(player.Resources.CurrentStamina, stats.MaxStamina)}]" +
+            $"{player.Resources.CurrentStamina}/{stats.MaxStamina}[/]  " +
+            $"[grey]ATK cost[/] [white]{stats.AttackSpCost}[/]  " +
+            $"[grey]DEF cost[/] [white]{stats.BlockSpCost}[/]"
+        );
+        AnsiConsole.WriteLine();
+
+        return AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .HighlightStyle(new Style(Color.Yellow))
+                .AddChoices("Attack", "Defend", "Wait", "Skills (soon)", "Items (soon)")
+        );
+    }
+
     // ── Helpers ───────────────────────────────────────────────
     private static string HpColor(int current, int max)
     {
@@ -107,10 +147,27 @@ public static class CombatDisplay
         return pct > 0.5f ? "green" : pct > 0.25f ? "yellow" : "red";
     }
 
+    private static string SpColor(int current, int max)
+    {
+        float pct = (float)current / max;
+        return pct > 0.5f ? "cyan" : pct > 0.75 ? "yellow" : "red";
+    }
+
     private static string HpBar(int current, int max, int width = 10)
     {
         int filled = (int)((float)current / max * width);
         filled = Math.Max(0, Math.Min(width, filled));
         return new string('█', filled) + new string('░', width - filled);
+    }
+
+    private static string HpCondition(int current, int max)
+    {
+        float pct = (float)current / max;
+        if (pct >= 1f) return "[green]Unscathed[/]";
+        if (pct >= 0.75f) return "[green]Scratched[/]";
+        if (pct >= 0.50f) return "[yellow]Bloodied[/]";
+        if (pct >= 0.25f) return "[yellow]Wounded[/]";
+        if (pct >= 0.10f) return "[red]Critical[/]";
+        return "[bold red]Near Death[/]";
     }
 }

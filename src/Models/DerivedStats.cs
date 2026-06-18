@@ -12,5 +12,10 @@ public record DerivedStats(
     int Evasion,
     int Accuracy,
     int BlockSpeed,
-    int BlockPower
+    int BlockPower,
+    int SpRegen,
+    int MpRegen,
+    int AttackSpCost,
+    int BlockSpCost,
+    int DodgeSpCost
 );

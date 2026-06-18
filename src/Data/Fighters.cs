@@ -10,7 +10,9 @@ public static class Fighters
         BirthClass: "Adventurer",
         CurrentClass: null,
         Tier: 0,
+        Level: 1,
         ResetUsed: false,
+        IsPlayerControlled: false,
         Attributes: new Attributes(
             Strength: 55,
             Agility: 50,
@@ -24,7 +26,8 @@ public static class Fighters
             CurrentMp: 0,
             Defending: false,
             DefendedLastTurn: false,
-            HasActed: false
+            HasActed: false,
+            IsWaiting: false
         )
     );
 
@@ -34,7 +37,9 @@ public static class Fighters
         BirthClass: "Adventurer",
         CurrentClass: null,
         Tier: 0,
+        Level: 1,
         ResetUsed: false,
+        IsPlayerControlled: false,
         Attributes: new Attributes(
             Strength: 30,
             Agility: 70,
@@ -48,7 +53,8 @@ public static class Fighters
             CurrentMp: 0,
             Defending: false,
             DefendedLastTurn: false,
-            HasActed: false
+            HasActed: false,
+            IsWaiting: false
         )
     );
 }

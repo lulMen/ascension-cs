@@ -46,24 +46,65 @@ public static class GameLoop
         CombatDisplay.ShowHeader();
         CombatDisplay.ShowFighters(combat.SideA.First(), combat.SideB.First());
 
-        int logCursor = 0;
+        // int logCursor = 0;
 
-        while (combat.CheckWin() == null)
+        while (!combat.IsRoundOver())
         {
-            CombatDisplay.ShowRound(combat.Round);
+            var actor = combat.GetNextActor();
+            if (actor == null) break;
 
-            while (!combat.IsRoundOver())
+            // always re-fetch fresh state
+            actor = combat.SideA.Concat(combat.SideB)
+                .First(c => c.Id == actor.Id);
+
+            var opponents = combat.SideA.Any(c => c.Id == actor.Id)
+                ? combat.SideB
+                : combat.SideA;
+
+            var target = opponents.FirstOrDefault(c => c.Resources.CurrentHp > 0);
+            if (target == null) break;
+
+            if (actor.IsPlayerControlled)
             {
-                var actor = combat.GetNextActor();
-                if (actor == null) break;
+                bool actionTaken = false;
+                while (!actionTaken)
+                {
+                    var choice = CombatDisplay.ShowActionMenu(actor);
+                    switch (choice)
+                    {
+                        case "Attack":
+                            combat.ExecuteTurn(
+                                attacker: actor,
+                                target: target,
+                                type: AttackType.Physical,
+                                modifiers: 1f,
+                                roll: (float)rng.NextDouble()
+                            );
+                            actionTaken = true;
+                            break;
 
-                var opponents = combat.SideA.Any(c => c.Id == actor.Id)
-                    ? combat.SideB
-                    : combat.SideA;
+                        case "Defend":
+                            combat.SetDefending(actor);
+                            actionTaken = true;
+                            break;
 
-                var target = opponents.First(c => c.Resources.CurrentHp > 0);
+                        case "Wait":
+                            combat.Wait(actor);
+                            actionTaken = true;
+                            break;
 
-                if (ShouldDefend(actor, target))
+                        default:
+                            AnsiConsole.MarkupLine(
+                                "  [dim]Not available yet — coming soon.[/]");
+                            break;
+                    }
+                }
+            }
+            else
+            {
+                if (ShouldWait(actor))
+                    combat.Wait(actor);
+                else if (ShouldDefend(actor, target))
                     combat.SetDefending(actor);
                 else
                     combat.ExecuteTurn(
@@ -74,15 +115,6 @@ public static class GameLoop
                         roll: (float)rng.NextDouble()
                     );
             }
-
-            foreach (var entry in combat.Log.Skip(logCursor))
-                CombatDisplay.ShowLogLine(entry);
-            logCursor = combat.Log.Count;
-
-            AnsiConsole.WriteLine();
-            CombatDisplay.ShowFighters(combat.SideA.First(), combat.SideB.First());
-
-            combat.NextRound();
         }
 
         return combat.CheckWin();
@@ -136,15 +168,19 @@ public static class GameLoop
                 CurrentMp: stats.MaxMp,
                 Defending: false,
                 DefendedLastTurn: false,
-                HasActed: false
+                HasActed: false,
+                IsWaiting: false
             )
         };
     }
 
     private static bool ShouldDefend(Character actor, Character target)
     {
-        var actorStats = CombatCalculator.CalculateDerivedStats(actor.Attributes);
-        var targetStats = CombatCalculator.CalculateDerivedStats(target.Attributes);
+        var actorStats = CombatCalculator.CalculateDerivedStats(actor.Attributes, actor.Level);
+        var targetStats = CombatCalculator.CalculateDerivedStats(target.Attributes, target.Level);
+
+        // Can't afford to block
+        if (actor.Resources.CurrentStamina < actorStats.BlockSpCost) return false;
 
         float hpPercent = (float)actor.Resources.CurrentHp / actorStats.MaxHp;
         float targetHpPercent = (float)target.Resources.CurrentHp / targetStats.MaxHp;
@@ -154,5 +190,13 @@ public static class GameLoop
         if (hpPercent < 0.30f && actorStats.Initiative < targetStats.Initiative) return true;
         if (hpPercent < 0.30f && actorStats.Initiative >= targetStats.Initiative) return false;
         return false;
+    }
+
+    private static bool ShouldWait(Character actor)
+    {
+        var stats = CombatCalculator.CalculateDerivedStats(actor.Attributes, actor.Level);
+        float hpPercent = (float)actor.Resources.CurrentHp / stats.MaxHp;
+
+        return actor.Resources.CurrentStamina == 0 && hpPercent > 0.40f;
     }
 }

@@ -156,7 +156,9 @@ public static class CharacterCreation
             BirthClass: "Adventurer",
             CurrentClass: null,
             Tier: 0,
+            Level: 1,
             ResetUsed: false,
+            IsPlayerControlled: true,
             Attributes: attributes,
             Resources: new Resources(
                 CurrentHp: derived.MaxHp,
@@ -164,7 +166,8 @@ public static class CharacterCreation
                 CurrentMp: derived.MaxMp,
                 Defending: false,
                 DefendedLastTurn: false,
-                HasActed: false
+                HasActed: false,
+                IsWaiting: false
             )
         );
     }

@@ -19,21 +19,26 @@ public static class CombatCalculator
         (int)(c * MathF.Sqrt(attribute));
 
     // ── Derived Stats ─────────────────────────────────────────
-    public static DerivedStats CalculateDerivedStats(Attributes a) =>
-        new DerivedStats(
-            MaxHp: Scale(a.Vitality, 5f),
-            MaxStamina: Scale(a.Vitality, 3f),
-            MaxMp: Scale(a.Intelligence, 3f),
-            PhysicalDamage: Scale(a.Strength, 2f),
-            MagicalDamage: Scale(a.Intelligence, 2f),
-            PhysicalDefense: Scale(a.Vitality, 1.5f),
-            MagicalDefense: Scale(a.Willpower, 1.5f),
-            Initiative: Scale(a.Agility, 2f),
-            Evasion: Scale(a.Agility, 2f),
-            Accuracy: Scale(a.Agility, 2f),
-            BlockSpeed: Scale(Blend(a.Agility, a.Strength), 2f),
-            BlockPower: Scale(Blend(a.Vitality, a.Strength), 2f)
-        );
+    public static DerivedStats CalculateDerivedStats(Attributes a, int level = 1) =>
+       new DerivedStats(
+           MaxHp: Scale(a.Vitality, 5f),
+           MaxStamina: Scale(a.Vitality, 3f),
+           MaxMp: Scale(a.Intelligence, 3f),
+           PhysicalDamage: Scale(a.Strength, 2f),
+           MagicalDamage: Scale(a.Intelligence, 2f),
+           PhysicalDefense: Scale(a.Vitality, 1.5f),
+           MagicalDefense: Scale(a.Willpower, 1.5f),
+           Initiative: Scale(a.Agility, 2f),
+           Evasion: Scale(a.Agility, 2f),
+           Accuracy: Scale(a.Agility, 2f),
+           BlockSpeed: Scale(Blend(a.Agility, a.Strength), 2f),
+           BlockPower: Scale(Blend(a.Vitality, a.Strength), 2f),
+           SpRegen: Math.Max(1, Scale(Blend(a.Vitality, a.Agility), 1.2f)),
+           MpRegen: Math.Max(1, Scale(Blend(a.Willpower, a.Intelligence), 1.2f)),
+           AttackSpCost: Math.Max(1, 4 + level / 10 - Scale(a.Strength, 0.5f)),
+           BlockSpCost: Math.Max(1, 5 + level / 10 - Scale(Blend(a.Vitality, a.Strength), 0.5f)),
+           DodgeSpCost: Math.Max(1, 3 + level / 10 - Scale(a.Agility, 0.5f))
+       );
 
     // ── Turn Order ────────────────────────────────────────────
     public static List<Character> DetermineTurnOrder(List<Character> combatants) =>
