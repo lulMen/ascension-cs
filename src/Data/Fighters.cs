@@ -11,6 +11,8 @@ public static class Fighters
         CurrentClass: null,
         Tier: 0,
         Level: 1,
+        Xp: 0,
+        StatPointsAvailable: 0,
         ResetUsed: false,
         IsPlayerControlled: false,
         Attributes: new Attributes(
@@ -38,6 +40,8 @@ public static class Fighters
         CurrentClass: null,
         Tier: 0,
         Level: 1,
+        Xp: 0,
+        StatPointsAvailable: 0,
         ResetUsed: false,
         IsPlayerControlled: false,
         Attributes: new Attributes(

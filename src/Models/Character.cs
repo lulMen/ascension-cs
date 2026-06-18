@@ -10,6 +10,8 @@ public record Character(
     // ── Progression ───────────────────────
     int Tier,
     int Level,
+    int Xp,
+    int StatPointsAvailable,
     bool ResetUsed,
 
     // ── Control ───────────────────────────

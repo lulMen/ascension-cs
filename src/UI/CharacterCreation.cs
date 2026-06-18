@@ -157,6 +157,8 @@ public static class CharacterCreation
             CurrentClass: null,
             Tier: 0,
             Level: 1,
+            Xp: 0,
+           StatPointsAvailable: 0,
             ResetUsed: false,
             IsPlayerControlled: true,
             Attributes: attributes,

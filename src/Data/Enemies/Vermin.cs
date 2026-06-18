@@ -13,6 +13,8 @@ public static class Vermin
         Level: 1,
         ResetUsed: false,
         IsPlayerControlled: false,
+        Xp: 0,
+        StatPointsAvailable: 0,
         Attributes: new Attributes(
             Strength: 5,
             Agility: 6,
